@@ -9,6 +9,7 @@ const DOUBLE_MARKERS = [12, 24];
 
 const COLORS = {
   root:      '#f59e0b',  // amber
+  accent:    '#f59e0b',  // amber (alias — used for "mystery" highlighted note)
   scale:     '#3b82f6',  // blue
   correct:   '#22c55e',  // green
   incorrect: '#ef4444',  // red
@@ -206,7 +207,17 @@ class Fretboard {
       }
     }
 
-    // Click hit areas (invisible rectangles over each fret/string cell)
+    // Reference note layer (dim background labels, populated by showReferenceNotes())
+    this._referenceGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+    this._referenceGroup.setAttribute('class', 'reference-notes');
+    svg.appendChild(this._referenceGroup);
+
+    // Highlight layer (exercise dots — sits above reference notes)
+    this._highlightGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+    this._highlightGroup.setAttribute('class', 'highlights');
+    svg.appendChild(this._highlightGroup);
+
+    // Click hit areas — rendered last so they sit on top and receive all pointer events
     if (this.clickable) {
       this._hitAreaGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
       this._hitAreaGroup.setAttribute('class', 'hit-areas');
@@ -240,11 +251,6 @@ class Fretboard {
       }
       svg.appendChild(this._hitAreaGroup);
     }
-
-    // Highlight layer (above hit areas)
-    this._highlightGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-    this._highlightGroup.setAttribute('class', 'highlights');
-    svg.appendChild(this._highlightGroup);
   }
 
   _drawNoteMarkers() {
@@ -319,9 +325,56 @@ class Fretboard {
     return this;
   }
 
+  // Show dim note-name labels as a learning aid.
+  // filter: 'all' = every note, 'naturals' = A B C D E F G only, 'none' = clear
+  showReferenceNotes(filter = 'none') {
+    if (!this._referenceGroup) return this;
+    this._referenceGroup.innerHTML = '';
+    if (filter === 'none') return this;
+
+    const NATURALS = new Set(['C', 'D', 'E', 'F', 'G', 'A', 'B']);
+    const { stringSpacing } = this.layout;
+    const r = Math.min(stringSpacing / 2 - 2, 11);
+
+    for (let s = 0; s < this.tuning.length; s++) {
+      for (let f = 0; f <= this.numFrets; f++) {
+        const note = getNoteAtPosition(s, f, this.tuning);
+        if (filter === 'naturals' && !NATURALS.has(note)) continue;
+
+        const cx = f === 0 ? this._x0() - 10 : this._x(f);
+        const cy = this._y(s);
+
+        const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+        circle.setAttribute('cx', cx);
+        circle.setAttribute('cy', cy);
+        circle.setAttribute('r', r);
+        // Easy = slightly brighter, Medium = dimmer (naturals only)
+        circle.setAttribute('fill', filter === 'all' ? '#1e2d45' : '#1a2a1a');
+        circle.setAttribute('stroke', filter === 'all' ? '#2a4060' : '#223022');
+        circle.setAttribute('stroke-width', '1');
+        circle.setAttribute('pointer-events', 'none');
+        this._referenceGroup.appendChild(circle);
+
+        const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+        text.setAttribute('x', cx);
+        text.setAttribute('y', cy + 4);
+        text.setAttribute('text-anchor', 'middle');
+        text.setAttribute('font-size', note.length > 1 ? '7' : '8');
+        text.setAttribute('font-weight', 'bold');
+        text.setAttribute('fill', filter === 'all' ? '#4a7aaa' : '#4a8a4a');
+        text.setAttribute('font-family', 'monospace');
+        text.setAttribute('pointer-events', 'none');
+        text.textContent = note;
+        this._referenceGroup.appendChild(text);
+      }
+    }
+    return this;
+  }
+
   reset() {
     this.highlights.clear();
     this._drawNoteMarkers();
+    if (this._referenceGroup) this._referenceGroup.innerHTML = '';
     return this;
   }
 
