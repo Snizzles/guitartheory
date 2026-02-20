@@ -178,7 +178,7 @@ function renderExercise() {
   // Render by type
   switch (q.type) {
     case 'find_note':    renderFindNote(q, container); break;
-    case 'name_note':    renderMultiChoice(q, container); break;
+    case 'name_note':    renderNameNote(q, container); break;
     case 'identify_interval': renderMultiChoice(q, container, true); break;
     case 'find_interval':    renderFindInterval(q, container); break;
     case 'name_scale':   renderMultiChoice(q, container); break;
@@ -249,9 +249,18 @@ function handleMultiChoiceAnswer(selected, q, choicesEl) {
   setTimeout(() => renderExercise(), 1200);
 }
 
+// Name Note: fretboard with one position highlighted, pick the note name
+function renderNameNote(q, container) {
+  const fb = setupFretboard(container, q.tuning, false, q.frets);
+  fb.showReferenceNotes(q.referenceFilter);
+  fb.highlight([{ string: q.string, fret: q.fret, color: COLORS.accent, label: '?' }]);
+  renderMultiChoice(q, container);
+}
+
 // Find Note: click all instances of a note on the fretboard
 function renderFindNote(q, container) {
-  const fb = setupFretboard(container, q.tuning, true);
+  const fb = setupFretboard(container, q.tuning, true, q.frets);
+  fb.showReferenceNotes(q.referenceFilter);
   const targets = new Set(q.targets.map(p => `${p.string},${p.fret}`));
   const clicked = new Set();
 
@@ -530,10 +539,13 @@ function init() {
   });
 
   // Module start buttons
+  function getNotesDifficulty() {
+    return document.querySelector('#notes-difficulty .diff-btn.active')?.dataset.diff || 'medium';
+  }
   document.getElementById('btn-start-notes-find').addEventListener('click', () =>
-    startSession(buildNoteMemoSession(state.tuning, 'find', 10)));
+    startSession(buildNoteMemoSession(state.tuning, 'find', 10, getNotesDifficulty())));
   document.getElementById('btn-start-notes-name').addEventListener('click', () =>
-    startSession(buildNoteMemoSession(state.tuning, 'name', 10)));
+    startSession(buildNoteMemoSession(state.tuning, 'name', 10, getNotesDifficulty())));
   document.getElementById('btn-start-intervals-id').addEventListener('click', () =>
     startSession(buildIntervalSession(state.tuning, 'identify', 10)));
   document.getElementById('btn-start-intervals-find').addEventListener('click', () =>
@@ -547,6 +559,16 @@ function init() {
   document.getElementById('btn-start-chords-name').addEventListener('click', () =>
     startSession(buildChordSession(state.tuning, 'name', 10)));
 
+  // Difficulty picker toggle
+  document.querySelectorAll('.diff-picker').forEach(picker => {
+    picker.querySelectorAll('.diff-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        picker.querySelectorAll('.diff-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+      });
+    });
+  });
+
   // Tuning custom inputs
   const customDiv = document.getElementById('tuning-custom');
   customDiv.style.display = 'none';
@@ -557,8 +579,8 @@ function init() {
 function repeatSession() {
   if (state.session) {
     const ModuleBuilders = {
-      'notes_find':       () => buildNoteMemoSession(state.tuning, 'find', state.session.total),
-      'notes_name':       () => buildNoteMemoSession(state.tuning, 'name', state.session.total),
+      'notes_find':       () => buildNoteMemoSession(state.tuning, 'find', state.session.total, state.session.questions[0]?.difficulty || 'medium'),
+      'notes_name':       () => buildNoteMemoSession(state.tuning, 'name', state.session.total, state.session.questions[0]?.difficulty || 'medium'),
       'intervals_identify': () => buildIntervalSession(state.tuning, 'identify', state.session.total),
       'intervals_find':   () => buildIntervalSession(state.tuning, 'find', state.session.total),
       'scales_name':      () => buildScaleSession(state.tuning, 'name', state.session.total),

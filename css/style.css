@@ -514,6 +514,58 @@ main {
 .mt-1 { margin-top: 0.5rem; }
 .mt-2 { margin-top: 1rem; }
 
+/* ── Difficulty Picker ────────────────────────────────────────────────────── */
+.diff-picker {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.6rem;
+}
+
+.diff-btn {
+  background: var(--surface2);
+  border: 2px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text-muted);
+  padding: 0.75rem 0.5rem;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+  transition: all 0.15s;
+  text-align: center;
+}
+.diff-btn:hover {
+  border-color: var(--accent);
+  color: var(--text);
+}
+.diff-btn.active {
+  border-color: var(--accent);
+  background: rgba(245,158,11,0.1);
+  color: var(--text);
+}
+.diff-btn[data-diff="easy"].active    { border-color: var(--correct);   background: rgba(34,197,94,0.1); }
+.diff-btn[data-diff="medium"].active  { border-color: var(--accent);    background: rgba(245,158,11,0.1); }
+.diff-btn[data-diff="hard"].active    { border-color: var(--incorrect); background: rgba(239,68,68,0.1); }
+
+.diff-label {
+  font-size: 0.95rem;
+  font-weight: 700;
+}
+.diff-btn[data-diff="easy"]   .diff-label { color: var(--correct); }
+.diff-btn[data-diff="medium"] .diff-label { color: var(--accent); }
+.diff-btn[data-diff="hard"]   .diff-label { color: var(--incorrect); }
+
+.diff-desc {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  line-height: 1.3;
+}
+
+@media (max-width: 480px) {
+  .diff-picker { grid-template-columns: 1fr; }
+}
+
 /* ── Mobile ───────────────────────────────────────────────────────────────── */
 @media (max-width: 640px) {
   header { gap: 0.5rem; padding: 0.5rem 0.75rem; }

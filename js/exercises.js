@@ -157,19 +157,27 @@ function makeChoices(correct, pool, n = 4) {
 
 // ─── Note Memorization ─────────────────────────────────────────────────────────
 
-function buildNoteMemoSession(tuning, mode = 'find', count = 10, frets = 12) {
+// Difficulty settings for note memorization
+const NOTE_DIFFICULTY = {
+  easy:   { frets: 5,  referenceFilter: 'all',      label: 'Easy'   },
+  medium: { frets: 12, referenceFilter: 'naturals',  label: 'Medium' },
+  hard:   { frets: 24, referenceFilter: 'none',      label: 'Hard'   }
+};
+
+function buildNoteMemoSession(tuning, mode = 'find', count = 10, difficulty = 'medium') {
   // Mode 'find': given a note name, find all positions
   // Mode 'name': given a position, name the note
+  const { frets, referenceFilter } = NOTE_DIFFICULTY[difficulty] || NOTE_DIFFICULTY.medium;
   const allKeys = [];
 
   if (mode === 'find') {
     for (const note of ALL_NOTES) {
-      allKeys.push(`note_find_${note}`);
+      allKeys.push(`note_find_${difficulty}_${note}`);
     }
   } else {
     for (let s = 0; s < tuning.length; s++) {
       for (let f = 0; f <= frets; f++) {
-        allKeys.push(`note_name_${s}_${f}`);
+        allKeys.push(`note_name_${difficulty}_${s}_${f}`);
       }
     }
   }
@@ -178,18 +186,22 @@ function buildNoteMemoSession(tuning, mode = 'find', count = 10, frets = 12) {
 
   return new Session('notes_' + mode, sessionKeys.map(key => {
     if (mode === 'find') {
-      const note = key.split('_')[2];
+      const note = key.split('_')[3];
       return {
         key,
         type: 'find_note',
         prompt: `Find all <strong>${note}</strong> notes on the fretboard`,
         targetNote: note,
         targets: getAllPositionsForNote(note, tuning, frets),
+        frets,
+        referenceFilter,
+        difficulty,
         tuning
       };
     } else {
-      const [, , s, f] = key.split('_');
-      const string = parseInt(s), fret = parseInt(f);
+      const parts = key.split('_');
+      // key: note_name_<difficulty>_<string>_<fret>
+      const string = parseInt(parts[3]), fret = parseInt(parts[4]);
       const correctNote = getNoteAtPosition(string, fret, tuning);
       return {
         key,
@@ -199,6 +211,9 @@ function buildNoteMemoSession(tuning, mode = 'find', count = 10, frets = 12) {
         fret,
         correctAnswer: correctNote,
         choices: makeChoices(correctNote, ALL_NOTES),
+        frets,
+        referenceFilter,
+        difficulty,
         tuning
       };
     }
