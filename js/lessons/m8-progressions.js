@@ -25,6 +25,7 @@ export default {
         { type: 'play', label: 'C maj7 (lush)', chord: true, notes: getChordNotes('C', 'Maj7') },
         { type: 'play', label: 'C7 (dominant — wants to resolve)', chord: true, notes: getChordNotes('C', 'Dom7') },
         { type: 'play', label: 'C m7 (smooth)', chord: true, notes: getChordNotes('C', 'Min7') },
+        { type: 'play', label: 'C m7♭5 (half-diminished — tense)', chord: true, notes: getChordNotes('C', 'm7b5') },
         { type: 'interactive', widget: 'chordLab', config: { root: 'D', type: 'Min7' },
           caption: 'Explore seventh chords from any root.' },
       ],
@@ -51,7 +52,7 @@ export default {
           a surprise).</p>` },
         { type: 'play', label: 'Authentic cadence: G7 → C', chordSeq: [getChordNotes('G', 'Dom7'), getChordNotes('C', 'Major')] },
         { type: 'play', label: 'Plagal “amen”: F → C', chordSeq: [getChordNotes('F', 'Major'), getChordNotes('C', 'Major')] },
-        { type: 'play', label: 'Deceptive: G → Am', chordSeq: [getChordNotes('G', 'Major'), getChordNotes('A', 'Minor')] },
+        { type: 'play', label: 'Deceptive: G7 → Am (a surprise)', chordSeq: [getChordNotes('G', 'Dom7'), getChordNotes('A', 'Minor')] },
       ],
       quiz: [
         { q: 'A cadence functions like…',

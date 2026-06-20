@@ -189,7 +189,7 @@ const MODE_CHARACTER = {
   'Lydian':     'Major with a raised 4th — dreamy, floating.',
   'Mixolydian': 'Major with a flat 7th — bluesy, dominant.',
   'Aeolian':    'The natural minor scale — sad, classic minor.',
-  'Locrian':    'Diminished tonic, flat 2nd & 5th — unstable, rarely a tonic.'
+  'Locrian':    'Minor scale with ♭2 and ♭5; its tonic triad is diminished, so it rarely works as a home.'
 };
 
 // Returns correctly-spelled note names for a scale. 7-note scales get one letter

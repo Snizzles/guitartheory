@@ -26,6 +26,7 @@ export default {
         { type: 'play', label: 'C major (bright)', chord: true, notes: getChordNotes('C', 'Major') },
         { type: 'play', label: 'C minor (dark)', chord: true, notes: getChordNotes('C', 'Minor') },
         { type: 'play', label: 'C diminished (tense)', chord: true, notes: getChordNotes('C', 'Diminished') },
+        { type: 'play', label: 'C augmented (unsettled)', chord: true, notes: getChordNotes('C', 'Augmented') },
         { type: 'interactive', widget: 'chordLab', config: { root: 'C', type: 'Major' },
           caption: 'Pick a root and chord type to see and hear it.' },
       ],
@@ -56,6 +57,12 @@ export default {
           notes: [{ name: 'E', octave: 4 }, { name: 'G', octave: 4 }, { name: 'C', octave: 5 }] },
         { type: 'play', label: 'C major — second inversion (G C E)', chord: true,
           notes: [{ name: 'G', octave: 4 }, { name: 'C', octave: 5 }, { name: 'E', octave: 5 }] },
+        { type: 'play', label: 'Voice leading — jumpy: C → F, both root position (big leaps)', chordSeq: [
+            [{ name: 'C', octave: 4 }, { name: 'E', octave: 4 }, { name: 'G', octave: 4 }],
+            [{ name: 'F', octave: 4 }, { name: 'A', octave: 4 }, { name: 'C', octave: 5 }]] },
+        { type: 'play', label: 'Voice leading — smooth: C → F/C, F inverted (notes barely move)', chordSeq: [
+            [{ name: 'C', octave: 4 }, { name: 'E', octave: 4 }, { name: 'G', octave: 4 }],
+            [{ name: 'C', octave: 4 }, { name: 'F', octave: 4 }, { name: 'A', octave: 4 }]] },
       ],
       quiz: [
         { q: 'A chord with its 3rd in the bass is in…',
@@ -94,7 +101,8 @@ export default {
         { q: 'In a major key, the ii chord is always…',
           choices: ['Major', 'Minor', 'Diminished', 'Augmented'], answer: 1, explain: 'Pattern: I ii iii IV V vi vii° — ii is minor.' },
         { q: 'In C major, which chord is the V?',
-          choices: ['F', 'G', 'Am', 'B°'], answer: 1, explain: 'The 5th degree is G → G major (the dominant).' },
+          choices: ['F', 'G', 'Am', 'B°'], answer: 1,
+          explain: 'The 5th degree is G → G major (the V chord, called the dominant — scale degree 5).' },
         { q: 'Uppercase vs lowercase Roman numerals indicate…',
           choices: ['Loud vs soft', 'Major vs minor quality', 'Fast vs slow', 'Sharp vs flat'], answer: 1,
           explain: 'Uppercase = major, lowercase = minor, ° = diminished.' },
