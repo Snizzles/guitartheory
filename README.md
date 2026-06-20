@@ -26,6 +26,7 @@ Eight modules, beginner → advanced:
 - **Audio** — a built-in Web Audio synth plays notes, scales, intervals and chords (no samples to download)
 - **Interactive explorers** — a mini piano, an interval lab, scale & chord builders, and a clickable circle of fifths
 - **End-of-lesson quizzes** — pass to unlock the next lesson
+- **Practice flashcards** — unscored memorization decks (note reading, notes-in-a-chord, name-the-chord, intervals, scale spelling, key signatures) you can drill anytime; flip to check yourself and hear every answer
 - **Progress tracking** — completion ticks, course %, and resume-where-you-left-off, saved in `localStorage`
 
 ## Tech Stack
@@ -45,6 +46,7 @@ js/theory.js            — Music theory engine: notes, spelling, scales, keys, 
 js/audio.js             — Web Audio synth
 js/notation.js          — abcjs wrapper (render + click-to-hear)
 js/quiz.js              — End-of-lesson quiz engine
+js/flashcards.js        — Unscored memorization decks
 js/progress.js          — localStorage progress tracking
 js/app.js               — Routing, lesson rendering, interactive widgets
 js/lessons/             — Lesson content (one file per module) + index

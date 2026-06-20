@@ -8,6 +8,7 @@ import {
 import { renderNotation } from './notation.js';
 import { playNote, playSequence, playChord, playInterval } from './audio.js';
 import { renderQuiz } from './quiz.js';
+import { DECKS, getDeck } from './flashcards.js';
 import {
   NOTE_CHOICES, SCALE_NAMES, CHORD_TYPES,
   getScaleNotes, getChordNotes, getInterval, transposeNote,
@@ -30,6 +31,7 @@ const $ = sel => document.querySelector(sel);
 function currentRoute() {
   const h = location.hash.replace(/^#\/?/, '');
   if (h.startsWith('lesson/')) return { view: 'lesson', id: h.slice('lesson/'.length) };
+  if (h.startsWith('practice/')) return { view: 'practice', id: h.slice('practice/'.length) };
   return { view: 'home' };
 }
 function go(hash) { location.hash = hash; }
@@ -43,6 +45,20 @@ function renderSidebar() {
   const home = el('button', 'side-home' + (route.view === 'home' ? ' active' : ''), '🏠 Course Home');
   home.addEventListener('click', () => go('#/home'));
   nav.appendChild(home);
+
+  // Practice / memorization decks
+  const pracWrap = el('div', 'side-module');
+  pracWrap.appendChild(el('div', 'side-module-title', '<span>Practice · Flashcards</span><span class="side-module-prog">∞</span>'));
+  const pracList = el('div', 'side-lessons');
+  DECKS.forEach(deck => {
+    const active = route.view === 'practice' && route.id === deck.id;
+    const btn = el('button', 'side-lesson' + (active ? ' active' : ''),
+      `<span class="tick">◆</span> ${deck.title}`);
+    btn.addEventListener('click', () => go('#/practice/' + deck.id));
+    pracList.appendChild(btn);
+  });
+  pracWrap.appendChild(pracList);
+  nav.appendChild(pracWrap);
 
   MODULES.forEach((mod, mi) => {
     const mp = progress.modulePercent(moduleLessonIds(mod.id));
@@ -114,6 +130,19 @@ function renderHome() {
     grid.appendChild(card);
   });
   main.appendChild(grid);
+
+  // Practice / memorization decks
+  main.appendChild(el('h2', 'home-section-title', 'Practice · Memorization'));
+  main.appendChild(el('p', 'home-section-sub', 'Unscored flashcards for free-time drilling — flip the card to check yourself, and hear every answer.'));
+  const pgrid = el('div', 'practice-cards');
+  DECKS.forEach(deck => {
+    const card = el('button', 'practice-card');
+    card.innerHTML = `<div class="pc-title">${deck.title}</div><div class="pc-blurb">${deck.blurb}</div>`;
+    card.addEventListener('click', () => go('#/practice/' + deck.id));
+    pgrid.appendChild(card);
+  });
+  main.appendChild(pgrid);
+
   $('#content-scroll').scrollTop = 0;
 }
 
@@ -439,12 +468,102 @@ function setActive(parent, btn) {
 
 // ─── Render dispatch ────────────────────────────────────────────────────────
 function render() {
+  if (window._fcKey) { document.removeEventListener('keydown', window._fcKey); window._fcKey = null; }
   renderSidebar();
   const route = currentRoute();
   if (route.view === 'lesson') renderLesson(route.id);
+  else if (route.view === 'practice') renderPractice(route.id);
   else renderHome();
   // close mobile sidebar on navigation
   document.body.classList.remove('sidebar-open');
+}
+
+// ─── Practice (flashcards) view ─────────────────────────────────────────────
+function renderPractice(id) {
+  const deck = getDeck(id);
+  if (!deck) { go('#/home'); return; }
+  const main = $('#content');
+  main.innerHTML = '';
+
+  const header = el('div', 'lesson-header');
+  header.appendChild(el('div', 'lesson-eyebrow', 'Practice · Flashcards'));
+  header.appendChild(el('h1', 'lesson-title', deck.title));
+  header.appendChild(el('p', 'hero-sub', deck.blurb + ' Unscored — drill as long as you like.'));
+  main.appendChild(header);
+
+  const cardMount = el('div', 'flashcard-mount');
+  main.appendChild(cardMount);
+
+  let count = 0;
+  function nextCard() {
+    count++;
+    renderCard(cardMount, deck.generate(), nextCard, count);
+  }
+  nextCard();
+
+  const footer = el('div', 'lesson-nav');
+  const back = el('button', 'btn-secondary', '← Course Home');
+  back.addEventListener('click', () => go('#/home'));
+  footer.appendChild(back);
+  main.appendChild(footer);
+  $('#content-scroll').scrollTop = 0;
+}
+
+function renderCard(mount, card, onNext, count) {
+  mount.innerHTML = '';
+  const c = el('div', 'flashcard card-block');
+  c.appendChild(el('div', 'fc-count', `Card ${count}`));
+  c.appendChild(el('div', 'fc-prompt', card.prompt));
+
+  const qArea = el('div', 'fc-q');
+  if (card.q.html) qArea.appendChild(el('div', 'fc-html', card.q.html));
+  if (card.q.abc) {
+    const m = el('div', 'notation-mount');
+    qArea.appendChild(m);
+    queueMicrotask(() => renderNotation(m, card.q.abc, { clickToHear: true }));
+  }
+  c.appendChild(qArea);
+
+  if (card.play) {
+    const pb = el('button', 'play-btn', '▶ Hear it');
+    pb.addEventListener('click', () =>
+      card.play.chord ? playChord(card.play.notes) : playSequence(card.play.notes, 0.45));
+    c.appendChild(pb);
+  }
+
+  const aArea = el('div', 'fc-a');
+  aArea.style.display = 'none';
+  if (card.a.html) aArea.appendChild(el('div', 'fc-html', card.a.html));
+  if (card.a.abc) aArea.appendChild(el('div', 'notation-mount'));
+  c.appendChild(aArea);
+
+  const ctr = el('div', 'fc-controls');
+  const reveal = el('button', 'btn-primary', 'Reveal answer');
+  const next = el('button', 'btn-secondary', 'Next card →');
+  function doReveal() {
+    if (aArea.style.display !== 'none') return;
+    aArea.style.display = 'block';
+    reveal.textContent = 'Answer shown';
+    reveal.disabled = true;
+    if (card.a.abc) renderNotation(aArea.querySelector('.notation-mount'), card.a.abc, { clickToHear: true });
+  }
+  reveal.addEventListener('click', doReveal);
+  next.addEventListener('click', onNext);
+  ctr.appendChild(reveal);
+  ctr.appendChild(next);
+  c.appendChild(ctr);
+
+  c.appendChild(el('div', 'fc-hint', 'Space / Enter = reveal · → = next card'));
+  mount.appendChild(c);
+
+  // Keyboard shortcuts (single handler, replaced each card)
+  if (window._fcKey) document.removeEventListener('keydown', window._fcKey);
+  window._fcKey = (e) => {
+    if (e.target.tagName === 'SELECT' || e.target.tagName === 'INPUT') return;
+    if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); doReveal(); }
+    else if (e.key === 'ArrowRight') { e.preventDefault(); onNext(); }
+  };
+  document.addEventListener('keydown', window._fcKey);
 }
 
 function init() {
