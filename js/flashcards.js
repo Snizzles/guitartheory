@@ -1,36 +1,75 @@
 // flashcards.js — Unscored memorization decks. Each deck generates random cards
-// from the theory engine. A card has a question, a revealed answer, and audio.
+// from the theory engine. Decks with a `levels` list start on the easiest level
+// (e.g. basic major/minor triads) so beginners aren't shown advanced chords.
 
 'use strict';
 
 import {
   buildABC, scaleToABC, getChordNotes, getScaleNotes, getInterval, transposeNote,
-  keySignature, relativeMinor, chordSymbol, pitchClass, CHROMATIC_SHARP, CHROMATIC_FLAT,
-  CIRCLE_OF_FIFTHS
+  keySignature, relativeMinor, chordSymbol, chordFullName, pitchClass,
+  CHROMATIC_SHARP, CHROMATIC_FLAT, CIRCLE_OF_FIFTHS
 } from './theory.js';
 
 const pick = arr => arr[Math.floor(Math.random() * arr.length)];
 const fmt = n => n.replaceAll('#', '♯').replaceAll('b', '♭');
 const chip = n => `<span class="note-chip">${fmt(n)}</span>`;
 const big = h => `<div class="fc-big">${h}</div>`;
+const sub = h => `<div class="fc-sub">${h}</div>`;
 
-const ROOTS = ['C', 'G', 'D', 'A', 'E', 'B', 'F', 'Bb', 'Eb', 'Ab', 'Db', 'F#'];
-const ROOTS_SIMPLE = ['C', 'G', 'D', 'A', 'E', 'F', 'Bb', 'Eb'];
-const CHORD_TYPES = ['Major', 'Minor', 'Dom7', 'Maj7', 'Min7', 'Diminished',
-  'Augmented', 'Sus4', 'Sus2', 'm7b5', '6', 'm6'];
-const SCALES = ['Major', 'Natural Minor', 'Harmonic Minor', 'Pentatonic Major',
-  'Pentatonic Minor', 'Blues', 'Dorian', 'Mixolydian'];
+// Root pools, easy → full
+const COMMON_ROOTS = ['C', 'G', 'D', 'A', 'E', 'F'];
+const CORE_ROOTS = ['C', 'G', 'D', 'A', 'E', 'F', 'Bb', 'Eb'];
+const ALL_ROOTS = ['C', 'G', 'D', 'A', 'E', 'B', 'F', 'Bb', 'Eb', 'Ab', 'Db', 'F#'];
 const LETTERS = ['A', 'B', 'C', 'D', 'E', 'F', 'G'];
+
+// Shared level configs for the two chord decks
+const CHORD_LEVELS = {
+  basic: { roots: COMMON_ROOTS, types: ['Major', 'Minor'] },
+  core:  { roots: CORE_ROOTS, types: ['Major', 'Minor', 'Dom7', 'Maj7', 'Min7', 'Sus4'] },
+  all:   { roots: ALL_ROOTS, types: ['Major', 'Minor', 'Dom7', 'Maj7', 'Min7', 'Sus2', 'Sus4',
+                                     'Augmented', 'Diminished', 'm7b5', 'Dim7', '6', 'm6'] }
+};
+const CHORD_LEVEL_LIST = [
+  { id: 'basic', label: 'Basic triads' },
+  { id: 'core', label: 'Core chords' },
+  { id: 'all', label: 'All chords' }
+];
+
+const SCALE_LEVELS = {
+  basic: { roots: COMMON_ROOTS, scales: ['Major', 'Natural Minor'] },
+  core:  { roots: CORE_ROOTS, scales: ['Major', 'Natural Minor', 'Pentatonic Major', 'Pentatonic Minor', 'Blues'] },
+  all:   { roots: ALL_ROOTS, scales: ['Major', 'Natural Minor', 'Harmonic Minor', 'Pentatonic Major',
+                                      'Pentatonic Minor', 'Blues', 'Dorian', 'Mixolydian'] }
+};
+const SCALE_LEVEL_LIST = [
+  { id: 'basic', label: 'Major & minor' },
+  { id: 'core', label: '+ Pentatonic & blues' },
+  { id: 'all', label: 'All scales' }
+];
+
+const lvl = (levels, id) => levels[id] || levels.basic;
+
+function chordCardCommon(levelId) {
+  const cfg = lvl(CHORD_LEVELS, levelId);
+  const root = pick(cfg.roots), type = pick(cfg.types);
+  return { root, type, notes: getChordNotes(root, type) };
+}
 
 const DECKS = [
   {
     id: 'notes-staff',
     title: 'Note Reading',
-    blurb: 'A note appears on the staff — name it. Treble & bass clef.',
-    generate() {
-      const clef = Math.random() < 0.5 ? 'treble' : 'bass';
+    blurb: 'A note appears on the staff — name it.',
+    defaultLevel: 'basic',
+    levels: [
+      { id: 'basic', label: 'Treble · naturals' },
+      { id: 'sharps', label: 'Treble · all notes' },
+      { id: 'all', label: 'Both clefs' }
+    ],
+    generate(levelId = 'basic') {
+      const clef = levelId === 'all' && Math.random() < 0.5 ? 'bass' : 'treble';
       const letter = pick(LETTERS);
-      const acc = pick([0, 0, 0, 1, -1]);
+      const acc = levelId === 'basic' ? 0 : pick([0, 0, 0, 1, -1]);
       const name = letter + (acc === 1 ? '#' : acc === -1 ? 'b' : '');
       const octave = clef === 'treble' ? pick([4, 5]) : pick([2, 3]);
       const pc = pitchClass(name);
@@ -51,13 +90,14 @@ const DECKS = [
   {
     id: 'chord-notes',
     title: 'Notes in a Chord',
-    blurb: 'See a chord symbol — recall the notes it contains.',
-    generate() {
-      const root = pick(ROOTS), type = pick(CHORD_TYPES);
-      const notes = getChordNotes(root, type);
+    blurb: 'See a chord — recall the notes it contains.',
+    defaultLevel: 'basic',
+    levels: CHORD_LEVEL_LIST,
+    generate(levelId = 'basic') {
+      const { root, type, notes } = chordCardCommon(levelId);
       return {
         prompt: 'What notes are in this chord?',
-        q: { html: big(chordSymbol(root, type)) },
+        q: { html: big(fmt(chordSymbol(root, type))) + sub(fmt(chordFullName(root, type))) },
         a: { html: notes.map(chip).join(' '), abc: buildABC([{ chord: notes }], { clef: 'treble', dur: '2' }) },
         play: { notes, chord: true }
       };
@@ -67,13 +107,14 @@ const DECKS = [
     id: 'name-chord',
     title: 'Name the Chord',
     blurb: 'See a stack of notes — name the chord.',
-    generate() {
-      const root = pick(ROOTS), type = pick(CHORD_TYPES);
-      const notes = getChordNotes(root, type);
+    defaultLevel: 'basic',
+    levels: CHORD_LEVEL_LIST,
+    generate(levelId = 'basic') {
+      const { root, type, notes } = chordCardCommon(levelId);
       return {
         prompt: 'Name this chord',
         q: { abc: buildABC([{ chord: notes }], { clef: 'treble', dur: '2' }), html: notes.map(chip).join(' ') },
-        a: { html: big(chordSymbol(root, type)) },
+        a: { html: big(fmt(chordSymbol(root, type))) + sub(fmt(chordFullName(root, type))) },
         play: { notes, chord: true }
       };
     }
@@ -82,8 +123,15 @@ const DECKS = [
     id: 'intervals',
     title: 'Intervals',
     blurb: 'Two notes on the staff — name the interval between them.',
-    generate() {
-      const root = pick(ROOTS_SIMPLE), semi = pick([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]);
+    defaultLevel: 'basic',
+    levels: [
+      { id: 'basic', label: 'Common intervals' },
+      { id: 'all', label: 'All intervals' }
+    ],
+    generate(levelId = 'basic') {
+      const semis = levelId === 'basic' ? [2, 3, 4, 5, 7, 12] : [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
+      const root = pick(levelId === 'basic' ? COMMON_ROOTS : CORE_ROOTS);
+      const semi = pick(semis);
       const topFull = transposeNote(root + '4', semi);
       const m = topFull.match(/([A-G][#b]*)(\d+)/);
       const topName = m[1], topOct = parseInt(m[2], 10);
@@ -100,8 +148,11 @@ const DECKS = [
     id: 'scale-spelling',
     title: 'Scale Spelling',
     blurb: 'Given a scale name, spell out its notes.',
-    generate() {
-      const root = pick(ROOTS), scale = pick(SCALES);
+    defaultLevel: 'basic',
+    levels: SCALE_LEVEL_LIST,
+    generate(levelId = 'basic') {
+      const cfg = lvl(SCALE_LEVELS, levelId);
+      const root = pick(cfg.roots), scale = pick(cfg.scales);
       const notes = getScaleNotes(root, scale);
       return {
         prompt: 'Spell this scale',
@@ -115,8 +166,16 @@ const DECKS = [
     id: 'key-signatures',
     title: 'Key Signatures',
     blurb: 'How many sharps or flats does a key have — and which?',
-    generate() {
-      const key = pick(CIRCLE_OF_FIFTHS).major;
+    defaultLevel: 'basic',
+    levels: [
+      { id: 'basic', label: 'Common keys' },
+      { id: 'all', label: 'All keys' }
+    ],
+    generate(levelId = 'basic') {
+      const pool = levelId === 'basic'
+        ? CIRCLE_OF_FIFTHS.filter(e => ['C', 'G', 'D', 'A', 'F', 'Bb', 'Eb'].includes(e.major))
+        : CIRCLE_OF_FIFTHS;
+      const key = pick(pool).major;
       const ks = keySignature(key);
       const ans = ks.type === 'none'
         ? 'No sharps or flats'
