@@ -230,15 +230,27 @@ const CHORD_SUFFIX = {
   'm7b5': 'm7♭5', 'Dim7': '°7', 'MinMaj7': 'm(maj7)', '6': '6', 'm6': 'm6'
 };
 
-// Spell a chord using stacked thirds (every other letter), like a scale would.
+// Diatonic letter steps from the root for each chord tone. Tertian chords stack
+// thirds (0,2,4,6); sus and 6 chords use different scale degrees, so spelling must
+// follow the real degree, not assume thirds (e.g. Csus4 = C F G, not C E# G).
+const CHORD_DEGREES = {
+  'Major': [0, 2, 4], 'Minor': [0, 2, 4], 'Augmented': [0, 2, 4], 'Diminished': [0, 2, 4],
+  'Sus2': [0, 1, 4], 'Sus4': [0, 3, 4],
+  'Maj7': [0, 2, 4, 6], 'Dom7': [0, 2, 4, 6], 'Min7': [0, 2, 4, 6],
+  'm7b5': [0, 2, 4, 6], 'Dim7': [0, 2, 4, 6], 'MinMaj7': [0, 2, 4, 6],
+  '6': [0, 2, 4, 5], 'm6': [0, 2, 4, 5]
+};
+
+// Spell a chord's notes using each tone's diatonic degree.
 function getChordNotes(root, chordType) {
   const formula = CHORD_FORMULAS[chordType];
   if (!formula) throw new Error(`Unknown chord: ${chordType}`);
   const rootPc = pitchClass(root);
   const startIdx = LETTERS.indexOf(parseNote(root).letter);
-  // chord tones are root, 3rd, 5th, 7th → letters two apart
+  const degrees = CHORD_DEGREES[chordType];
   return formula.map((semi, i) => {
-    const letter = LETTERS[(startIdx + i * 2) % 7];
+    const step = degrees ? degrees[i] : i * 2;
+    const letter = LETTERS[(startIdx + step) % 7];
     return spellWithLetter(letter, (rootPc + semi) % 12);
   });
 }
