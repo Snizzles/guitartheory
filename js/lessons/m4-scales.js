@@ -46,7 +46,7 @@ export default {
           <p>Two variants tweak the top for stronger pull to the tonic:</p>
           <ul>
             <li><strong>Harmonic minor</strong> — raise the 7th (a leading tone), giving an exotic gap.</li>
-            <li><strong>Melodic minor</strong> — raise the 6th and 7th going up.</li>
+            <li><strong>Melodic minor</strong> — raise the 6th and 7th going up, then revert to natural minor coming down.</li>
           </ul>` },
         { type: 'notation', caption: 'A natural minor scale.', abc: scaleToABC('A', 'Natural Minor', { octave: 4 }) },
         { type: 'play', label: 'Hear A natural minor', seq: true,
