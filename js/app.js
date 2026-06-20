@@ -262,11 +262,11 @@ function pianoMini(mount, { from = 'C', octaves = 1 } = {}) {
   const blackAfter = { C: 'C#', D: 'D#', F: 'F#', G: 'G#', A: 'A#' };
   const kb = el('div', 'piano');
   const startIdx = whiteSeq.indexOf(from) === -1 ? 0 : whiteSeq.indexOf(from);
-  let oct = 4;
   for (let o = 0; o < octaves; o++) {
     for (let i = 0; i < 7; i++) {
-      const letter = whiteSeq[(startIdx + i) % 7];
-      if (i > 0 && (startIdx + i) % 7 === 0) oct++;
+      const abs = startIdx + (o * 7) + i;
+      const letter = whiteSeq[abs % 7];
+      const oct = 4 + Math.floor(abs / 7);
       const white = el('div', 'pkey white');
       white.dataset.note = letter; white.dataset.oct = oct;
       white.appendChild(el('span', 'pkey-label', letter));
