@@ -10,7 +10,8 @@ export default {
       sections: [
         { type: 'prose', html: `
           <p>Pitch tells you <em>which</em> note; <strong>rhythm</strong> tells you <em>how long</em>
-          it lasts. Note values are relative — each is half the length of the one before:</p>
+          it lasts. Note values are relative — each is half the length of the one before.
+          <strong>In 4/4 time</strong> (the beat counts below depend on the time signature):</p>
           <ul>
             <li><strong>Whole note</strong> — hollow head, no stem — 4 beats</li>
             <li><strong>Half note</strong> — hollow head with a stem — 2 beats</li>

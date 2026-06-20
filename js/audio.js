@@ -37,21 +37,26 @@ function playFreq(freq, t, dur, gainPeak = 0.22) {
   const gain2 = ac.createGain();
   gain2.gain.value = 0.5;
 
-  const a = 0.012, d = 0.12, s = 0.6, r = 0.25;
+  // ADSR — clamp decay so sustain is reached by the note's end for very short notes
+  const a = Math.min(0.012, dur / 2), s = 0.6, r = 0.25;
+  const d = Math.min(0.12, Math.max(0, dur - a));
   gain.gain.setValueAtTime(0, t);
   gain.gain.linearRampToValueAtTime(gainPeak, t + a);
   gain.gain.linearRampToValueAtTime(gainPeak * s, t + a + d);
-  gain.gain.setValueAtTime(gainPeak * s, t + dur);
-  gain.gain.linearRampToValueAtTime(0, t + dur + r);
+  gain.gain.setValueAtTime(gainPeak * s, t + Math.max(dur, a + d));
+  gain.gain.linearRampToValueAtTime(0, t + Math.max(dur, a + d) + r);
 
   osc.connect(gain);
   osc2.connect(gain2);
   gain2.connect(gain);
   gain.connect(ac.destination);
 
+  const stopAt = t + Math.max(dur, a + d) + r + 0.02;
   osc.start(t); osc2.start(t);
-  osc.stop(t + dur + r + 0.02);
-  osc2.stop(t + dur + r + 0.02);
+  osc.stop(stopAt);
+  osc2.stop(stopAt);
+  // Release the node graph once playback ends (avoids accumulation under rapid play)
+  osc.onended = () => { osc.disconnect(); osc2.disconnect(); gain.disconnect(); gain2.disconnect(); };
 }
 
 // Play one note immediately (e.g. on a click).
