@@ -28,6 +28,12 @@ function el(tag, cls, html) {
 const $ = sel => document.querySelector(sel);
 const fmtAcc = s => s.replaceAll('#', '♯').replaceAll('b', '♭');
 
+// Render abcjs notation after layout settles (double rAF) so the container has a
+// measured width — avoids blank SVGs, notably on mobile Safari.
+function mountNotation(elm, abc, opts) {
+  requestAnimationFrame(() => requestAnimationFrame(() => renderNotation(elm, abc, opts)));
+}
+
 // ─── Routing ────────────────────────────────────────────────────────────────
 function currentRoute() {
   const h = location.hash.replace(/^#\/?/, '');
@@ -88,7 +94,7 @@ function renderHome() {
   const last = progress.getLastLesson();
   const resumeId = last && getLesson(last) ? last : LESSONS[0].id;
   const resumeLesson = getLesson(resumeId);
-  const started = progress.completedCount() > 0 || last;
+  const started = progress.completedCount() > 0 || !!last;
 
   main.innerHTML = '';
   const hero = el('div', 'hero');
@@ -225,8 +231,7 @@ function renderNotationSection(sec) {
   const mount = el('div', 'notation-mount');
   wrap.appendChild(mount);
   if (sec.caption) wrap.appendChild(el('div', 'notation-caption', sec.caption));
-  // Defer render until in DOM so abcjs sizing works
-  queueMicrotask(() => renderNotation(mount, sec.abc, { clickToHear: sec.clickToHear !== false }));
+  mountNotation(mount, sec.abc, { clickToHear: sec.clickToHear !== false });
   return wrap;
 }
 
@@ -234,8 +239,8 @@ function playSection(sec) {
   if (sec.chordSeq) {
     sec.chordSeq.forEach((chord, i) => setTimeout(() => playChord(chord, 0.9), i * 750));
   } else if (sec.chord) {
-    playChord(sec.notes);
-  } else {
+    if (sec.notes) playChord(sec.notes);
+  } else if (sec.notes) {
     playSequence(sec.notes, 0.45);
   }
 }
@@ -262,16 +267,16 @@ function pianoMini(mount, { from = 'C', octaves = 1 } = {}) {
   const blackAfter = { C: 'C#', D: 'D#', F: 'F#', G: 'G#', A: 'A#' };
   const kb = el('div', 'piano');
   const startIdx = whiteSeq.indexOf(from) === -1 ? 0 : whiteSeq.indexOf(from);
-  let oct = 4;
   for (let o = 0; o < octaves; o++) {
     for (let i = 0; i < 7; i++) {
-      const letter = whiteSeq[(startIdx + i) % 7];
-      if (i > 0 && (startIdx + i) % 7 === 0) oct++;
+      const abs = startIdx + o * 7 + i;
+      const letter = whiteSeq[abs % 7];
+      const oct = 4 + Math.floor(abs / 7);      // octave from absolute white-key index
       const white = el('div', 'pkey white');
       white.dataset.note = letter; white.dataset.oct = oct;
       white.appendChild(el('span', 'pkey-label', letter));
       const blackName = blackAfter[letter];
-      if (blackName && !(letter === 'B')) {
+      if (blackName && letter !== 'B') {
         const black = el('div', 'pkey black');
         black.dataset.note = blackName; black.dataset.oct = oct;
         white.appendChild(black);
@@ -309,15 +314,15 @@ function intervalLab(mount, { root = 'C' } = {}) {
     ['m2', 1], ['M2', 2], ['m3', 3], ['M3', 4], ['P4', 5], ['TT', 6],
     ['P5', 7], ['m6', 8], ['M6', 9], ['m7', 10], ['M7', 11], ['P8', 12]
   ];
-  function show(semi) {
+  function show(semi, silent) {
     const r = rootSel.value;
     const topFull = transposeNote(r + '4', semi);     // e.g. "G4" or "C5"
     const m = topFull.match(/([A-G][#b]?)(\d+)/);
     const topName = m[1], topOct = parseInt(m[2], 10);
-    const info = getInterval(r, topName);
-    out.innerHTML = `<strong>${r}</strong> → <strong>${topName}</strong> &nbsp;·&nbsp; ${info.name}`;
-    renderNotation(mount2, buildABC([r + '4', topFull], { clef: 'treble', dur: '4' }), { clickToHear: true });
-    playInterval(r, topName, 4, topOct);
+    const info = getInterval(r + '4', topFull);        // octave-aware (so P8 ≠ P1)
+    out.innerHTML = `<strong>${fmtAcc(r)}</strong> → <strong>${fmtAcc(topName)}</strong> &nbsp;·&nbsp; ${info.name}`;
+    mountNotation(mount2, buildABC([r + '4', topFull], { clef: 'treble', dur: '4' }), { clickToHear: true });
+    if (!silent) playInterval(r, topName, 4, topOct);
   }
   intervals.forEach(([name, semi]) => {
     const b = el('button', 'lab-chip', name);
@@ -328,7 +333,9 @@ function intervalLab(mount, { root = 'C' } = {}) {
     const active = btns.querySelector('.lab-chip.active');
     if (active) active.click();
   });
-  btns.firstChild.click();
+  // initial render without auto-playing audio
+  setActive(btns, btns.firstChild);
+  show(intervals[0][1], true);
 }
 
 // Scale explorer
@@ -355,8 +362,8 @@ function scaleLab(mount, { root = 'C', scale = 'Major' } = {}) {
     try {
       const notes = getScaleNotes(r, s);
       currentNotes = notes;
-      out.innerHTML = notes.map(n => `<span class="note-chip">${n}</span>`).join('');
-      renderNotation(mount2, scaleToABC(r, s), { clickToHear: true });
+      out.innerHTML = notes.map(n => `<span class="note-chip">${fmtAcc(n)}</span>`).join('');
+      mountNotation(mount2, scaleToABC(r, s), { clickToHear: true });
     } catch (e) { out.textContent = 'n/a'; }
   }
   playBtn.addEventListener('click', () => {
@@ -394,7 +401,7 @@ function chordLab(mount, { root = 'C', type = 'Major' } = {}) {
     out.innerHTML = `<strong>${fmtAcc(chordSymbol(r, t))}</strong> ` +
       `<span class="fc-muted">(${fmtAcc(chordFullName(r, t))})</span><br>` +
       notes.map(n => `<span class="note-chip">${fmtAcc(n)}</span>`).join(' ');
-    renderNotation(mount2, buildABC([{ chord: notes }], { clef: 'treble', dur: '2' }), { clickToHear: true });
+    mountNotation(mount2, buildABC([{ chord: notes }], { clef: 'treble', dur: '2' }), { clickToHear: true });
   }
   playBtn.addEventListener('click', () => playChord(currentNotes));
   rootSel.addEventListener('change', update);
@@ -440,16 +447,16 @@ function circleOfFifths(mount, _cfg) {
   const detail = el('div', 'cof-detail');
   mount.appendChild(detail);
 
-  function selectKey(key, g) {
+  function selectKey(key, g, silent) {
     svg.querySelectorAll('.cof-key').forEach(k => k.classList.remove('active'));
     g.classList.add('active');
     const sig = keySignature(key);
     const sigText = sig.type === 'none' ? 'no sharps or flats'
-      : `${sig.count} ${sig.type}${sig.count > 1 ? 's' : ''}: ${sig.notes.join(', ')}`;
-    detail.innerHTML = `<strong>${key} major</strong> — ${sigText}.<br>Relative minor: <strong>${relativeMinor(key)} minor</strong>.`;
-    playSequence(getScaleNotes(key, 'Major').map(n => ({ name: n, octave: 4 })).concat([{ name: key, octave: 5 }]), 0.28);
+      : `${sig.count} ${sig.type}${sig.count > 1 ? 's' : ''}: ${sig.notes.map(fmtAcc).join(', ')}`;
+    detail.innerHTML = `<strong>${fmtAcc(key)} major</strong> — ${sigText}.<br>Relative minor: <strong>${fmtAcc(relativeMinor(key))} minor</strong>.`;
+    if (!silent) playSequence(getScaleNotes(key, 'Major').map(n => ({ name: n, octave: 4 })).concat([{ name: key, octave: 5 }]), 0.28);
   }
-  selectKey('C', svg.querySelector('.cof-key'));
+  selectKey('C', svg.querySelector('.cof-key'), true);   // initial select, no auto-play
 }
 
 // ─── Small UI utils ─────────────────────────────────────────────────────────
@@ -471,8 +478,10 @@ function setActive(parent, btn) {
 // ─── Render dispatch ────────────────────────────────────────────────────────
 function render() {
   if (window._fcKey) { document.removeEventListener('keydown', window._fcKey); window._fcKey = null; }
-  renderSidebar();
   const route = currentRoute();
+  // normalize unknown/bad hashes (e.g. #/garbage) to a clean home URL
+  if (route.view === 'home' && location.hash && location.hash !== '#/home') { go('#/home'); return; }
+  renderSidebar();
   if (route.view === 'lesson') renderLesson(route.id);
   else if (route.view === 'practice') renderPractice(route.id);
   else renderHome();
@@ -502,6 +511,7 @@ function renderPractice(id) {
     deck.levels.forEach(L => {
       const b = el('button', 'level-btn' + (L.id === level ? ' active' : ''), L.label);
       b.addEventListener('click', () => {
+        if (L.id === level) return;          // already on this level — don't re-roll
         level = L.id;
         lc.querySelectorAll('.level-btn').forEach(x => x.classList.remove('active'));
         b.classList.add('active');
@@ -541,7 +551,7 @@ function renderCard(mount, card, onNext, count) {
   if (card.q.abc) {
     const m = el('div', 'notation-mount');
     qArea.appendChild(m);
-    queueMicrotask(() => renderNotation(m, card.q.abc, { clickToHear: true }));
+    mountNotation(m, card.q.abc, { clickToHear: true });
   }
   c.appendChild(qArea);
 
@@ -568,11 +578,7 @@ function renderCard(mount, card, onNext, count) {
     reveal.disabled = true;
     // Defer to the next frame so the now-visible container has a measured width
     // before abcjs renders (mobile Safari renders a blank SVG otherwise).
-    if (card.a.abc) {
-      const mount = aArea.querySelector('.notation-mount');
-      requestAnimationFrame(() => requestAnimationFrame(() =>
-        renderNotation(mount, card.a.abc, { clickToHear: true })));
-    }
+    if (card.a.abc) mountNotation(aArea.querySelector('.notation-mount'), card.a.abc, { clickToHear: true });
   }
   reveal.addEventListener('click', doReveal);
   next.addEventListener('click', onNext);
@@ -586,7 +592,7 @@ function renderCard(mount, card, onNext, count) {
   // Keyboard shortcuts (single handler, replaced each card)
   if (window._fcKey) document.removeEventListener('keydown', window._fcKey);
   window._fcKey = (e) => {
-    if (e.target.tagName === 'SELECT' || e.target.tagName === 'INPUT') return;
+    if (['SELECT', 'INPUT', 'BUTTON', 'TEXTAREA'].includes(e.target.tagName)) return;
     if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); doReveal(); }
     else if (e.key === 'ArrowRight') { e.preventDefault(); onNext(); }
   };
@@ -601,4 +607,5 @@ function init() {
   render();
 }
 
-document.addEventListener('DOMContentLoaded', init);
+if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
+else init();

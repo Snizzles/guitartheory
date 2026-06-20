@@ -135,7 +135,7 @@ const DECKS = [
       const topFull = transposeNote(root + '4', semi);
       const m = topFull.match(/([A-G][#b]*)(\d+)/);
       const topName = m[1], topOct = parseInt(m[2], 10);
-      const info = getInterval(root, topName);
+      const info = getInterval(root + '4', topFull);   // octave-aware (so 12 → P8)
       return {
         prompt: 'Name the interval',
         q: { abc: buildABC([root + '4', topFull], { clef: 'treble', dur: '4' }) },

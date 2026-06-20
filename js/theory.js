@@ -84,8 +84,19 @@ function semitonesBetween(a, b) {
   return ((pitchClass(b) - pitchClass(a)) % 12 + 12) % 12;
 }
 
+// Octave-aware when both notes carry an octave (so C4→C5 is a P8, not a P1);
+// otherwise reduces to the within-octave pitch-class distance.
 function getInterval(a, b) {
-  const semitones = semitonesBetween(a, b);
+  const pa = parseNote(a), pb = parseNote(b);
+  let semitones;
+  if (pa.octave != null && pb.octave != null) {
+    const abs = (LETTER_PC[pb.letter] + pb.acc + pb.octave * 12) -
+                (LETTER_PC[pa.letter] + pa.acc + pa.octave * 12);
+    semitones = Math.abs(abs);
+    if (semitones > 12) semitones = semitones % 12 === 0 ? 12 : semitones % 12;
+  } else {
+    semitones = semitonesBetween(a, b);
+  }
   return { semitones, name: INTERVAL_NAMES[semitones], short: INTERVAL_SHORT[semitones] };
 }
 
@@ -149,8 +160,10 @@ function getScaleNotes(root, scaleName) {
       return spellWithLetter(letter, (rootPc + semi) % 12);
     });
   }
-  // Non-heptatonic: pick flats or sharps based on the root's spelling
-  const useFlat = parseNote(root).acc < 0 || ['F'].includes(rootLetter);
+  // Non-heptatonic: choose flats for flat roots, minor-flavoured scales, or natural F.
+  const rootAcc = parseNote(root).acc;
+  const isMinorish = scaleName === 'Pentatonic Minor' || scaleName === 'Blues';
+  const useFlat = rootAcc < 0 || (rootAcc === 0 && (isMinorish || rootLetter === 'F'));
   const table = useFlat ? CHROMATIC_FLAT : CHROMATIC_SHARP;
   return steps.map(semi => table[(rootPc + semi) % 12]);
 }
@@ -184,24 +197,29 @@ const CIRCLE_OF_FIFTHS = [
 ];
 
 // Key signature for a major key: { count, type:'sharp'|'flat'|'none', notes:[...] }
+// Computed from the correctly-spelled major scale, so it's right for every key
+// spelling (incl. Gb, C#, Cb) rather than matching the circle table by pitch class.
 function keySignature(majorRoot) {
-  const entry = CIRCLE_OF_FIFTHS.find(e => notesEqual(e.major, majorRoot));
-  if (!entry) return { count: 0, type: 'none', notes: [] };
-  if (entry.acc === 0) return { count: 0, type: 'none', notes: [] };
-  if (entry.acc > 0) {
-    return { count: entry.acc, type: 'sharp', notes: SHARP_ORDER.slice(0, entry.acc).map(n => n + '#') };
+  const notes = getScaleNotes(majorRoot, 'Major');
+  const sharps = notes.filter(n => parseNote(n).acc > 0);
+  const flats = notes.filter(n => parseNote(n).acc < 0);
+  if (sharps.length && !flats.length) {
+    const ordered = SHARP_ORDER.map(L => sharps.find(n => parseNote(n).letter === L)).filter(Boolean);
+    return { count: sharps.length, type: 'sharp', notes: ordered };
   }
-  const n = -entry.acc;
-  return { count: n, type: 'flat', notes: FLAT_ORDER.slice(0, n).map(l => l + 'b') };
+  if (flats.length && !sharps.length) {
+    const ordered = FLAT_ORDER.map(L => flats.find(n => parseNote(n).letter === L)).filter(Boolean);
+    return { count: flats.length, type: 'flat', notes: ordered };
+  }
+  return { count: 0, type: 'none', notes: [] };
 }
 
+// Relatives derived from scale degree, so spelling is correct for any key.
 function relativeMinor(majorRoot) {
-  const e = CIRCLE_OF_FIFTHS.find(x => notesEqual(x.major, majorRoot));
-  return e ? e.minor : getScaleNotes(majorRoot, 'Major')[5];
+  return getScaleNotes(majorRoot, 'Major')[5];            // 6th degree
 }
 function relativeMajor(minorRoot) {
-  const e = CIRCLE_OF_FIFTHS.find(x => notesEqual(x.minor, minorRoot));
-  return e ? e.major : getScaleNotes(minorRoot, 'Natural Minor')[2];
+  return getScaleNotes(minorRoot, 'Natural Minor')[2];    // 3rd degree
 }
 
 // ─── Chords ─────────────────────────────────────────────────────────────────
@@ -219,6 +237,7 @@ const CHORD_FORMULAS = {
   'm7b5':       [0, 3, 6, 10],
   'Dim7':       [0, 3, 6, 9],
   'MinMaj7':    [0, 3, 7, 11],
+  'AugMaj7':    [0, 4, 8, 11],
   '6':          [0, 4, 7, 9],
   'm6':         [0, 3, 7, 9]
 };
@@ -227,7 +246,7 @@ const CHORD_FORMULAS = {
 const CHORD_SUFFIX = {
   'Major': '', 'Minor': 'm', 'Augmented': '+', 'Diminished': '°',
   'Sus2': 'sus2', 'Sus4': 'sus4', 'Maj7': 'maj7', 'Dom7': '7', 'Min7': 'm7',
-  'm7b5': 'm7♭5', 'Dim7': '°7', 'MinMaj7': 'm(maj7)', '6': '6', 'm6': 'm6'
+  'm7b5': 'm7♭5', 'Dim7': '°7', 'MinMaj7': 'm(maj7)', 'AugMaj7': '+maj7', '6': '6', 'm6': 'm6'
 };
 
 // Diatonic letter steps from the root for each chord tone. Tertian chords stack
@@ -237,7 +256,7 @@ const CHORD_DEGREES = {
   'Major': [0, 2, 4], 'Minor': [0, 2, 4], 'Augmented': [0, 2, 4], 'Diminished': [0, 2, 4],
   'Sus2': [0, 1, 4], 'Sus4': [0, 3, 4],
   'Maj7': [0, 2, 4, 6], 'Dom7': [0, 2, 4, 6], 'Min7': [0, 2, 4, 6],
-  'm7b5': [0, 2, 4, 6], 'Dim7': [0, 2, 4, 6], 'MinMaj7': [0, 2, 4, 6],
+  'm7b5': [0, 2, 4, 6], 'Dim7': [0, 2, 4, 6], 'MinMaj7': [0, 2, 4, 6], 'AugMaj7': [0, 2, 4, 6],
   '6': [0, 2, 4, 5], 'm6': [0, 2, 4, 5]
 };
 
@@ -264,7 +283,7 @@ const CHORD_NAMES = {
   'Major': 'major', 'Minor': 'minor', 'Augmented': 'augmented', 'Diminished': 'diminished',
   'Sus2': 'suspended 2nd', 'Sus4': 'suspended 4th', 'Maj7': 'major 7th', 'Dom7': 'dominant 7th',
   'Min7': 'minor 7th', 'm7b5': 'half-diminished 7th', 'Dim7': 'diminished 7th',
-  'MinMaj7': 'minor-major 7th', '6': 'major 6th', 'm6': 'minor 6th'
+  'MinMaj7': 'minor-major 7th', 'AugMaj7': 'augmented-major 7th', '6': 'major 6th', 'm6': 'minor 6th'
 };
 function chordFullName(root, chordType) {
   return `${root} ${CHORD_NAMES[chordType] || chordType}`;
@@ -274,12 +293,18 @@ function chordFullName(root, chordType) {
 function identifyChord(notes) {
   const inputPc = new Set(notes.map(pitchClass));
   const results = [];
-  for (const root of notes) {
+  const seen = new Set();
+  for (const root of new Set(notes)) {
     for (const [type, formula] of Object.entries(CHORD_FORMULAS)) {
       const chordPc = new Set(formula.map(s => (pitchClass(root) + s) % 12));
       if (chordPc.size === inputPc.size &&
           [...chordPc].every(p => inputPc.has(p))) {
-        results.push({ root: normalizeNote(root), type, symbol: chordSymbol(normalizeNote(root), type) });
+        const r = normalizeNote(root);
+        const key = r + '|' + type;
+        if (!seen.has(key)) {
+          seen.add(key);
+          results.push({ root: r, type, symbol: chordSymbol(r, type) });
+        }
       }
     }
   }
@@ -288,9 +313,19 @@ function identifyChord(notes) {
 
 // ─── Diatonic harmony ───────────────────────────────────────────────────────
 
-// Triads built on each degree of a 7-note scale
-const ROMAN_MAJOR = ['I', 'ii', 'iii', 'IV', 'V', 'vi', 'vii°'];
+// Roman numeral base per degree (case/suffix applied from the chord quality)
+const ROMAN_MAJOR = ['I', 'ii', 'iii', 'IV', 'V', 'vi', 'vii°'];   // kept for reference
 const ROMAN_MINOR = ['i', 'ii°', 'III', 'iv', 'v', 'VI', 'VII'];
+const ROMAN_NUM = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII'];
+
+// Build the Roman numeral from the chord quality, correct for any 7-note scale.
+function romanFor(i, type) {
+  let r = ROMAN_NUM[i];
+  if (type === 'Minor' || type === 'Diminished') r = r.toLowerCase();
+  if (type === 'Diminished') r += '°';
+  else if (type === 'Augmented') r += '+';
+  return r;
+}
 
 function triadQuality(third, fifth) {
   if (third === 4 && fifth === 7) return 'Major';
@@ -300,12 +335,11 @@ function triadQuality(third, fifth) {
   return 'Major';
 }
 
-// Diatonic triads of a scale: [{ degree, root, type, symbol, roman, notes }]
+// Diatonic triads of a 7-note scale: [{ degree, root, type, symbol, roman, notes }]
 function diatonicTriads(root, scaleName = 'Major') {
   const scale = getScaleNotes(root, scaleName);
+  if (scale.length !== 7) throw new Error(`diatonicTriads requires a 7-note scale: ${scaleName}`);
   const pcs = scale.map(pitchClass);
-  const romans = scaleName === 'Major' || scaleName === 'Ionian' ? ROMAN_MAJOR
-    : (scaleName === 'Natural Minor' || scaleName === 'Aeolian') ? ROMAN_MINOR : ROMAN_MAJOR;
   return scale.map((deg, i) => {
     const third = ((pcs[(i + 2) % 7] - pcs[i]) % 12 + 12) % 12;
     const fifth = ((pcs[(i + 4) % 7] - pcs[i]) % 12 + 12) % 12;
@@ -313,19 +347,19 @@ function diatonicTriads(root, scaleName = 'Major') {
     const notes = [scale[i], scale[(i + 2) % 7], scale[(i + 4) % 7]];
     return {
       degree: i + 1, root: deg, type, symbol: chordSymbol(deg, type),
-      roman: romans[i], notes
+      roman: romanFor(i, type), notes
     };
   });
 }
 
-// Diatonic seventh chords of a scale
+// Diatonic seventh chords of a 7-note scale
 function diatonicSevenths(root, scaleName = 'Major') {
   const scale = getScaleNotes(root, scaleName);
+  if (scale.length !== 7) throw new Error(`diatonicSevenths requires a 7-note scale: ${scaleName}`);
   return scale.map((deg, i) => {
     const notes = [0, 2, 4, 6].map(o => scale[(i + o) % 7]);
-    const id = identifyChord(notes);
-    const type = id[0]?.type || 'Maj7';
-    return { degree: i + 1, root: deg, type, symbol: chordSymbol(deg, type), notes };
+    const type = identifyChord(notes)[0]?.type || null;   // null when not a known quality
+    return { degree: i + 1, root: deg, type, symbol: type ? chordSymbol(deg, type) : `${deg} (other)`, notes };
   });
 }
 
@@ -363,22 +397,43 @@ function buildABC(events, opts = {}) {
   header += `L:1/${dur}\n`;
   header += `K:${key} clef=${clef}\n`;
 
-  const tokens = events.map(ev => {
-    if (ev === 'z' || ev === 'rest') return 'z';
-    if (typeof ev === 'string') return noteToABC(ev, octave);
-    if (ev.chord) return '[' + ev.chord.map(n =>
-      typeof n === 'string' ? noteToABC(n, octave) : noteToABC(n.name, n.octave)).join('') + ']';
-    return noteToABC(ev.name, ev.octave ?? octave);
-  });
+  // Measure-aware token builder: tracks the accidental in effect for each
+  // letter+octave within the current measure and emits an explicit accidental
+  // (including a natural `=`) only when a note differs from what's active —
+  // so naturals after a flat/sharp render correctly without cluttering plain scales.
+  function tok(name, oct, macc) {
+    const p = parseNote(name);
+    const o = p.octave != null ? p.octave : oct;
+    const k = p.letter + o;
+    const active = macc[k] === undefined ? 0 : macc[k];
+    let prefix = '';
+    if (p.acc !== active) {
+      prefix = p.acc > 0 ? '^'.repeat(p.acc) : p.acc < 0 ? '_'.repeat(-p.acc) : '=';
+      macc[k] = p.acc;
+    }
+    const body = o >= 5 ? p.letter.toLowerCase() + "'".repeat(o - 5) : p.letter + ','.repeat(4 - o);
+    return prefix + body;
+  }
+
+  function measureTokens(evs) {
+    const macc = {};
+    return evs.map(ev => {
+      if (ev === 'z' || ev === 'rest') return 'z';
+      if (typeof ev === 'string') return tok(ev, octave, macc);
+      if (ev.chord) return '[' + ev.chord.map(n =>
+        typeof n === 'string' ? tok(n, octave, macc) : tok(n.name, n.octave ?? octave, macc)).join('') + ']';
+      return tok(ev.name, ev.octave ?? octave, macc);
+    }).join(' ');
+  }
 
   let body = '';
   if (perLine > 0) {
-    for (let i = 0; i < tokens.length; i += perLine) {
-      body += tokens.slice(i, i + perLine).join(' ') + ' |\n';
+    for (let i = 0; i < events.length; i += perLine) {
+      body += measureTokens(events.slice(i, i + perLine)) + ' |\n';
       if (opts.lyrics) body += 'w: ' + opts.lyrics.slice(i, i + perLine).join(' ') + '\n';
     }
   } else {
-    body = tokens.join(' ') + ' |\n';
+    body = measureTokens(events) + ' |\n';
     if (opts.lyrics) body += 'w: ' + opts.lyrics.join(' ') + '\n';
   }
   return header + body;
@@ -396,8 +451,8 @@ function scaleToABC(root, scaleName, opts = {}) {
     prevPc = pc;
     return { name: n, octave: oct };
   });
-  // add the octave root on top
-  events.push({ name: notes[0], octave: oct + 1 });
+  // add the octave root on top (fixed at one octave above the start)
+  events.push({ name: notes[0], octave: startOct + 1 });
   return buildABC(events, { dur: '4', perLine: 8, ...opts });
 }
 
