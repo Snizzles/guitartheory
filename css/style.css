@@ -226,14 +226,20 @@ header {
 .callout-body { font-size: 0.9rem; color: var(--text-muted); }
 .callout-body strong { color: var(--text); }
 
-/* Notation */
+/* Notation — a warm "paper" card that reads as intentional sheet music
+   rather than a glaring white box framed by the dark theme. */
 .notation-mount {
-  background: #fbfbfe;
+  background: #f6f3ea;
+  border: 1px solid #d9d3c4;
   border-radius: 8px;
-  padding: 0.4rem 0.6rem;
+  padding: 0.6rem 0.8rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
   overflow-x: auto;
 }
 .notation-mount svg { display: block; }
+/* Lesson notation: drop the redundant dark card frame so it's one clean paper
+   card, not a white box inside a dark box (keeps card-block's bottom margin). */
+.sec-notation { background: none; border: none; box-shadow: none; padding: 0; }
 .notation-caption { font-size: 0.8rem; color: var(--text-muted); margin-top: 0.5rem; text-align: center; }
 .abc-note-flash { fill: var(--accent2) !important; }
 .notation-mount .abcjs-note, .notation-mount .abcjs-rest { cursor: pointer; }
