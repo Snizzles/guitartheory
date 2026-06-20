@@ -40,11 +40,32 @@ export default {
       title: 'Major, Minor & Perfect',
       sections: [
         { type: 'prose', html: `
-          <p>Some intervals are <strong>perfect</strong> (unison, 4th, 5th, octave) — they sound stable
-          and open. The 2nd, 3rd, 6th and 7th come in <strong>major</strong> (larger) and
-          <strong>minor</strong> (one half step smaller) flavours.</p>
-          <p>Within one octave, by half steps from the root: m2 (1), M2 (2), m3 (3), M3 (4), P4 (5),
-          tritone (6), P5 (7), m6 (8), M6 (9), m7 (10), M7 (11), octave (12).</p>` },
+          <p>Some intervals are <strong>perfect</strong> (the unison, 4th, 5th and octave) — they
+          sound stable and open. The 2nd, 3rd, 6th and 7th instead come in two sizes:
+          <strong>major</strong> (larger) and <strong>minor</strong> (exactly one half step smaller).</p>
+          <p>The surest way to pin down an interval's <em>quality</em> is to <strong>count its half
+          steps</strong> from the lower note. Here is every interval inside one octave — this table is
+          worth coming back to:</p>
+          <table class="theory-table">
+            <thead><tr><th>Interval</th><th>Short</th><th>Half steps</th><th>From C</th></tr></thead>
+            <tbody>
+              <tr><td>Perfect unison</td><td>P1</td><td>0</td><td>C–C</td></tr>
+              <tr><td>Minor 2nd</td><td>m2</td><td>1</td><td>C–D♭</td></tr>
+              <tr><td>Major 2nd</td><td>M2</td><td>2</td><td>C–D</td></tr>
+              <tr><td>Minor 3rd</td><td>m3</td><td>3</td><td>C–E♭</td></tr>
+              <tr><td>Major 3rd</td><td>M3</td><td>4</td><td>C–E</td></tr>
+              <tr><td>Perfect 4th</td><td>P4</td><td>5</td><td>C–F</td></tr>
+              <tr><td>Tritone</td><td>TT</td><td>6</td><td>C–F♯</td></tr>
+              <tr class="hl"><td>Perfect 5th</td><td>P5</td><td>7</td><td>C–G</td></tr>
+              <tr><td>Minor 6th</td><td>m6</td><td>8</td><td>C–A♭</td></tr>
+              <tr><td>Major 6th</td><td>M6</td><td>9</td><td>C–A</td></tr>
+              <tr><td>Minor 7th</td><td>m7</td><td>10</td><td>C–B♭</td></tr>
+              <tr><td>Major 7th</td><td>M7</td><td>11</td><td>C–B</td></tr>
+              <tr><td>Perfect octave</td><td>P8</td><td>12</td><td>C–C</td></tr>
+            </tbody>
+          </table>` },
+        { type: 'callout', variant: 'key', title: 'Worth memorizing',
+          html: 'The perfect intervals by half step: <strong>unison = 0, 4th = 5, 5th = 7, octave = 12</strong>. The <strong>perfect 5th = 7 half steps</strong> (C up to G) turns up everywhere — lock that one in.' },
         { type: 'play', label: 'Major 3rd — bright (C–E)', seq: true, notes: ['C', 'E'] },
         { type: 'play', label: 'Minor 3rd — darker (C–E♭)', seq: true, notes: ['C', 'Eb'] },
         { type: 'play', label: 'Perfect 5th — strong, open (C–G)', seq: true, notes: ['C', 'G'] },
