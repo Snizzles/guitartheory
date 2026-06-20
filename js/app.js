@@ -12,7 +12,7 @@ import { DECKS, getDeck } from './flashcards.js';
 import {
   NOTE_CHOICES, SCALE_NAMES, CHORD_TYPES,
   getScaleNotes, getChordNotes, getInterval, transposeNote,
-  keySignature, relativeMinor, chordSymbol, buildABC, scaleToABC
+  keySignature, relativeMinor, chordSymbol, chordFullName, buildABC, scaleToABC
 } from './theory.js';
 import * as progress from './progress.js';
 
@@ -26,6 +26,7 @@ function el(tag, cls, html) {
   return e;
 }
 const $ = sel => document.querySelector(sel);
+const fmtAcc = s => s.replaceAll('#', '♯').replaceAll('b', '♭');
 
 // ─── Routing ────────────────────────────────────────────────────────────────
 function currentRoute() {
@@ -390,8 +391,9 @@ function chordLab(mount, { root = 'C', type = 'Major' } = {}) {
     const r = rootSel.value, t = typeSel.value;
     const notes = getChordNotes(r, t);
     currentNotes = notes;
-    out.innerHTML = `<strong>${chordSymbol(r, t)}</strong> &nbsp; ` +
-      notes.map(n => `<span class="note-chip">${n}</span>`).join('');
+    out.innerHTML = `<strong>${fmtAcc(chordSymbol(r, t))}</strong> ` +
+      `<span class="fc-muted">(${fmtAcc(chordFullName(r, t))})</span><br>` +
+      notes.map(n => `<span class="note-chip">${fmtAcc(n)}</span>`).join(' ');
     renderNotation(mount2, buildABC([{ chord: notes }], { clef: 'treble', dur: '2' }), { clickToHear: true });
   }
   playBtn.addEventListener('click', () => playChord(currentNotes));
@@ -491,13 +493,32 @@ function renderPractice(id) {
   header.appendChild(el('p', 'hero-sub', deck.blurb + ' Unscored — drill as long as you like.'));
   main.appendChild(header);
 
+  let level = deck.defaultLevel || (deck.levels && deck.levels[0].id) || null;
+  let count = 0;
+
+  if (deck.levels) {
+    const lc = el('div', 'level-control');
+    lc.appendChild(el('span', 'level-label', 'Difficulty'));
+    deck.levels.forEach(L => {
+      const b = el('button', 'level-btn' + (L.id === level ? ' active' : ''), L.label);
+      b.addEventListener('click', () => {
+        level = L.id;
+        lc.querySelectorAll('.level-btn').forEach(x => x.classList.remove('active'));
+        b.classList.add('active');
+        count = 0;
+        nextCard();
+      });
+      lc.appendChild(b);
+    });
+    main.appendChild(lc);
+  }
+
   const cardMount = el('div', 'flashcard-mount');
   main.appendChild(cardMount);
 
-  let count = 0;
   function nextCard() {
     count++;
-    renderCard(cardMount, deck.generate(), nextCard, count);
+    renderCard(cardMount, deck.generate(level), nextCard, count);
   }
   nextCard();
 
@@ -545,7 +566,13 @@ function renderCard(mount, card, onNext, count) {
     aArea.style.display = 'block';
     reveal.textContent = 'Answer shown';
     reveal.disabled = true;
-    if (card.a.abc) renderNotation(aArea.querySelector('.notation-mount'), card.a.abc, { clickToHear: true });
+    // Defer to the next frame so the now-visible container has a measured width
+    // before abcjs renders (mobile Safari renders a blank SVG otherwise).
+    if (card.a.abc) {
+      const mount = aArea.querySelector('.notation-mount');
+      requestAnimationFrame(() => requestAnimationFrame(() =>
+        renderNotation(mount, card.a.abc, { clickToHear: true })));
+    }
   }
   reveal.addEventListener('click', doReveal);
   next.addEventListener('click', onNext);
