@@ -229,6 +229,9 @@ header {
 /* Notation — a warm "paper" card that reads as intentional sheet music
    rather than a glaring white box framed by the dark theme. */
 .notation-mount {
+  /* abcjs draws every glyph with fill:currentColor — set a dark ink color here so
+     the notation renders as crisp black sheet music, not the theme's light text. */
+  color: #1a1c28;
   background: #f6f3ea;
   border: 1px solid #d9d3c4;
   border-radius: 8px;
