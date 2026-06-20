@@ -192,8 +192,17 @@ const MODE_CHARACTER = {
   'Locrian':    'Diminished tonic, flat 2nd & 5th — unstable, rarely a tonic.'
 };
 
+// Diatonic letter steps (degree − 1) for non-heptatonic scales, so each note is
+// spelled from its scale degree rather than a flat/sharp table. The blues ♭5 and
+// 5 share the 5th's letter (e.g. C blues: G♭ then G♮).
+const SCALE_DEGREES = {
+  'Pentatonic Major': [0, 1, 2, 4, 5],
+  'Pentatonic Minor': [0, 2, 3, 4, 6],
+  'Blues':            [0, 2, 3, 4, 4, 6]
+};
+
 // Returns correctly-spelled note names for a scale. 7-note scales get one letter
-// per degree; other scales fall back to key-appropriate chromatic spelling.
+// per degree; pentatonic/blues spell by degree too; chromatic uses a table.
 function getScaleNotes(root, scaleName) {
   const steps = SCALES[scaleName];
   if (!steps) throw new Error(`Unknown scale: ${scaleName}`);
@@ -207,11 +216,17 @@ function getScaleNotes(root, scaleName) {
       return spellWithLetter(letter, (rootPc + semi) % 12);
     });
   }
-  // Non-heptatonic: choose flats for flat roots, minor-flavoured scales, or natural F.
+  // Pentatonic & blues: spell each note from its scale degree (letter) so the
+  // accidentals stay consistent — e.g. B♭ blues is B♭ D♭ E♭ F♭ F A♭, no stray E♮.
+  const degs = SCALE_DEGREES[scaleName];
+  if (degs) {
+    const startIdx = LETTERS.indexOf(rootLetter);
+    return steps.map((semi, i) =>
+      spellWithLetter(LETTERS[(startIdx + degs[i]) % 7], (rootPc + semi) % 12));
+  }
+  // Chromatic (no clean 7-letter mapping): sharps by default, flats for flat/F roots.
   const rootAcc = parseNote(root).acc;
-  const isMinorish = scaleName === 'Pentatonic Minor' || scaleName === 'Blues';
-  const useFlat = rootAcc < 0 || (rootAcc === 0 && (isMinorish || rootLetter === 'F'));
-  const table = useFlat ? CHROMATIC_FLAT : CHROMATIC_SHARP;
+  const table = (rootAcc < 0 || (rootAcc === 0 && rootLetter === 'F')) ? CHROMATIC_FLAT : CHROMATIC_SHARP;
   return steps.map(semi => table[(rootPc + semi) % 12]);
 }
 
