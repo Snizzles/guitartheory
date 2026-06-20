@@ -59,45 +59,92 @@ function spellWithLetter(letter, targetPc) {
 
 // ─── Intervals ──────────────────────────────────────────────────────────────
 
-const INTERVAL_NAMES = {
-  0: 'Perfect Unison (P1)',
-  1: 'Minor 2nd (m2)',
-  2: 'Major 2nd (M2)',
-  3: 'Minor 3rd (m3)',
-  4: 'Major 3rd (M3)',
-  5: 'Perfect 4th (P4)',
-  6: 'Tritone (TT)',
-  7: 'Perfect 5th (P5)',
-  8: 'Minor 6th (m6)',
-  9: 'Major 6th (M6)',
-  10: 'Minor 7th (m7)',
-  11: 'Major 7th (M7)',
-  12: 'Perfect Octave (P8)'
-};
+// Canonical interval catalog: `steps` is the diatonic letter distance above the
+// root (number − 1), `semis` the chromatic size. The augmented 4th and diminished
+// 5th are listed separately because they sound alike (the tritone) but are spelled
+// — and named — differently. Used to generate correctly-spelled example notes.
+const INTERVAL_CATALOG = [
+  { short: 'P1', name: 'Perfect Unison',  steps: 0, semis: 0  },
+  { short: 'm2', name: 'Minor 2nd',       steps: 1, semis: 1  },
+  { short: 'M2', name: 'Major 2nd',       steps: 1, semis: 2  },
+  { short: 'm3', name: 'Minor 3rd',       steps: 2, semis: 3  },
+  { short: 'M3', name: 'Major 3rd',       steps: 2, semis: 4  },
+  { short: 'P4', name: 'Perfect 4th',     steps: 3, semis: 5  },
+  { short: 'A4', name: 'Augmented 4th',   steps: 3, semis: 6  },
+  { short: 'd5', name: 'Diminished 5th',  steps: 4, semis: 6  },
+  { short: 'P5', name: 'Perfect 5th',     steps: 4, semis: 7  },
+  { short: 'm6', name: 'Minor 6th',       steps: 5, semis: 8  },
+  { short: 'M6', name: 'Major 6th',       steps: 5, semis: 9  },
+  { short: 'm7', name: 'Minor 7th',       steps: 6, semis: 10 },
+  { short: 'M7', name: 'Major 7th',       steps: 6, semis: 11 },
+  { short: 'P8', name: 'Perfect Octave',  steps: 7, semis: 12 }
+];
 
-const INTERVAL_SHORT = {
-  0: 'P1', 1: 'm2', 2: 'M2', 3: 'm3', 4: 'M3', 5: 'P4',
-  6: 'TT', 7: 'P5', 8: 'm6', 9: 'M6', 10: 'm7', 11: 'M7', 12: 'P8'
-};
+// Major/perfect (reference) semitone size for each diatonic number 1–7.
+const NUMBER_REF = { 1: 0, 2: 2, 3: 4, 4: 5, 5: 7, 6: 9, 7: 11 };
+const PERFECT_NUMBERS = new Set([1, 4, 5]); // these take perfect/aug/dim (never major/minor)
 
 function semitonesBetween(a, b) {
   return ((pitchClass(b) - pitchClass(a)) % 12 + 12) % 12;
 }
 
-// Octave-aware when both notes carry an octave (so C4→C5 is a P8, not a P1);
-// otherwise reduces to the within-octave pitch-class distance.
+function ordinalName(num) {
+  if (num === 1) return 'Unison';
+  if (num === 8) return 'Octave';
+  const named = { 2: '2nd', 3: '3rd', 4: '4th', 5: '5th', 6: '6th', 7: '7th',
+                  9: '9th', 10: '10th', 11: '11th', 12: '12th' };
+  return named[num] || `${num}th`;
+}
+
+// Interval quality from a diatonic number + chromatic size, as { word, code }.
+function qualityFor(number, semis) {
+  const simple = ((number - 1) % 7) + 1;
+  const octaves = Math.floor((number - 1) / 7);
+  const diff = semis - (NUMBER_REF[simple] + 12 * octaves);
+  if (PERFECT_NUMBERS.has(simple)) {
+    if (diff === 0) return { word: 'Perfect', code: 'P' };
+    if (diff > 0)   return { word: diff > 1 ? 'Doubly Augmented' : 'Augmented', code: 'A'.repeat(diff) };
+    return { word: diff < -1 ? 'Doubly Diminished' : 'Diminished', code: 'd'.repeat(-diff) };
+  }
+  if (diff === 0)  return { word: 'Major', code: 'M' };
+  if (diff === -1) return { word: 'Minor', code: 'm' };
+  if (diff > 0)    return { word: diff > 1 ? 'Doubly Augmented' : 'Augmented', code: 'A'.repeat(diff) };
+  return { word: diff < -2 ? 'Doubly Diminished' : 'Diminished', code: 'd'.repeat(-diff - 1) };
+}
+
+// Name an interval from two *spelled* notes — quality follows the spelling, so a
+// notated C–D♯ is an Augmented 2nd, not a Minor 3rd. Octave-aware when both notes
+// carry an octave (so C4→C5 is a P8, not a P1); otherwise assumes the smallest
+// ascending interval within an octave.
 function getInterval(a, b) {
   const pa = parseNote(a), pb = parseNote(b);
-  let semitones;
+  const ia = LETTERS.indexOf(pa.letter), ib = LETTERS.indexOf(pb.letter);
+  let steps, semis;
   if (pa.octave != null && pb.octave != null) {
-    const abs = (LETTER_PC[pb.letter] + pb.acc + pb.octave * 12) -
-                (LETTER_PC[pa.letter] + pa.acc + pa.octave * 12);
-    semitones = Math.abs(abs);
-    if (semitones > 12) semitones = semitones % 12 === 0 ? 12 : semitones % 12;
+    steps = (ib + 7 * pb.octave) - (ia + 7 * pa.octave);
+    semis = (LETTER_PC[pb.letter] + pb.acc + pb.octave * 12) -
+            (LETTER_PC[pa.letter] + pa.acc + pa.octave * 12);
   } else {
-    semitones = semitonesBetween(a, b);
+    steps = ib - ia; if (steps < 0) steps += 7;
+    semis = semitonesBetween(a, b);
   }
-  return { semitones, name: INTERVAL_NAMES[semitones], short: INTERVAL_SHORT[semitones] };
+  steps = Math.abs(steps); semis = Math.abs(semis);
+  const number = steps + 1;
+  const q = qualityFor(number, semis);
+  return { semitones: semis, number, quality: q.word,
+           short: q.code + number, name: `${q.word} ${ordinalName(number)}` };
+}
+
+// Spell the note a given diatonic interval (`steps`/`semis`) above `root`,
+// carrying the octave through when the root has one (e.g. ("C4",4,6) → "Gb4").
+function noteAtInterval(root, steps, semis) {
+  const p = parseNote(root);
+  const startIdx = LETTERS.indexOf(p.letter);
+  const letterIdx = startIdx + steps;
+  const letter = LETTERS[letterIdx % 7];
+  const spelled = spellWithLetter(letter, (pitchClass(root) + semis) % 12);
+  if (p.octave == null) return spelled;
+  return spelled + (p.octave + Math.floor(letterIdx / 7));
 }
 
 // Transpose a (possibly octave-bearing) note by N semitones, sharp spelling
@@ -465,10 +512,10 @@ const CHORD_TYPES = Object.keys(CHORD_FORMULAS);
 export {
   CHROMATIC_SHARP, CHROMATIC_FLAT, LETTERS, ENHARMONIC,
   SCALES, MODE_ORDER, MODE_CHARACTER, CHORD_FORMULAS, CHORD_SUFFIX,
-  INTERVAL_NAMES, INTERVAL_SHORT, CIRCLE_OF_FIFTHS, SHARP_ORDER, FLAT_ORDER,
+  INTERVAL_CATALOG, CIRCLE_OF_FIFTHS, SHARP_ORDER, FLAT_ORDER,
   ROMAN_MAJOR, ROMAN_MINOR, NOTE_CHOICES, SCALE_NAMES, CHORD_TYPES,
   parseNote, accidentalStr, pitchClass, normalizeNote, notesEqual,
-  spellWithLetter, semitonesBetween, getInterval, transposeNote,
+  spellWithLetter, semitonesBetween, getInterval, noteAtInterval, transposeNote,
   getScaleNotes, getModeNotes, keySignature, relativeMinor, relativeMajor,
   getChordNotes, chordSymbol, chordFullName, CHORD_NAMES,
   identifyChord, diatonicTriads, diatonicSevenths,

@@ -18,8 +18,8 @@ export default {
             <li><strong>Quality</strong> — major, minor, perfect, augmented or diminished — the exact
             size in half steps.</li>
           </ul>
-          <p>Always count the starting note as "1". C→D is a 2nd, C→C (same letter) is a unison or an
-          octave.</p>` },
+          <p>Always count the starting note as "1". C→D is a 2nd. C→C at the <em>same pitch</em> is a
+          <strong>unison</strong>; C up to the <em>next</em> C is an <strong>octave</strong>.</p>` },
         { type: 'notation', caption: 'C up to G — count C-D-E-F-G = a 5th.',
           abc: buildABC(['C', { name: 'G', octave: 4 }], { clef: 'treble', dur: '4' }) },
         { type: 'play', label: 'Hear C then G', seq: true, notes: ['C', 'G'] },
@@ -44,8 +44,9 @@ export default {
           sound stable and open. The 2nd, 3rd, 6th and 7th instead come in two sizes:
           <strong>major</strong> (larger) and <strong>minor</strong> (exactly one half step smaller).</p>
           <p>The surest way to pin down an interval's <em>quality</em> is to <strong>count its half
-          steps</strong> from the lower note. Here is every interval inside one octave — this table is
-          worth coming back to:</p>
+          steps</strong> from the lower note. For example, <strong>C–E</strong> spans 4 half steps —
+          which the table below calls a <strong>major 3rd</strong>. Count first, then check the table.
+          Here is every interval inside one octave — worth coming back to:</p>
           <table class="theory-table">
             <thead><tr><th>Interval</th><th>Short</th><th>Half steps</th><th>From C</th></tr></thead>
             <tbody>
@@ -55,7 +56,8 @@ export default {
               <tr><td>Minor 3rd</td><td>m3</td><td>3</td><td>C–E♭</td></tr>
               <tr><td>Major 3rd</td><td>M3</td><td>4</td><td>C–E</td></tr>
               <tr><td>Perfect 4th</td><td>P4</td><td>5</td><td>C–F</td></tr>
-              <tr><td>Tritone</td><td>TT</td><td>6</td><td>C–F♯</td></tr>
+              <tr><td>Augmented 4th</td><td>A4</td><td>6</td><td>C–F♯</td></tr>
+              <tr><td>Diminished 5th</td><td>d5</td><td>6</td><td>C–G♭</td></tr>
               <tr class="hl"><td>Perfect 5th</td><td>P5</td><td>7</td><td>C–G</td></tr>
               <tr><td>Minor 6th</td><td>m6</td><td>8</td><td>C–A♭</td></tr>
               <tr><td>Major 6th</td><td>M6</td><td>9</td><td>C–A</td></tr>
@@ -87,13 +89,19 @@ export default {
       title: 'The Tritone & Training Your Ear',
       sections: [
         { type: 'prose', html: `
-          <p>Exactly halfway through the octave (6 half steps) sits the <strong>tritone</strong> — an
-          augmented 4th / diminished 5th. It sounds tense and unresolved; it’s the engine of the
-          dominant chord you’ll meet later.</p>
+          <p>Exactly halfway through the octave (6 half steps) sits the <strong>tritone</strong>. It
+          sounds tense and unresolved — it’s the engine of the dominant chord you’ll meet later.</p>
+          <p>The tritone is also our way into the last two qualities. <strong>Augmented</strong> means
+          <em>one half step wider</em> than a perfect or major interval; <strong>diminished</strong>
+          means <em>one half step narrower</em> than a perfect or minor interval. So the very same
+          6-half-step gap is an <strong>augmented 4th</strong> when spelled as a 4th (C–F♯: C-D-E-F) but a
+          <strong>diminished 5th</strong> when spelled as a 5th (C–G♭: C-D-E-F-G) — same sound, different
+          spelling and name.</p>
           <p>Many people learn interval sounds by linking them to songs: a Perfect 4th opens “Here Comes
           the Bride”; a Perfect 5th opens the Star Wars theme; a Major 6th opens “My Bonnie Lies Over
           the Ocean.” Use the ear-training questions below to start recognising them.</p>` },
-        { type: 'play', label: 'Hear the tritone (C–F♯)', seq: true, notes: ['C', 'F#'] },
+        { type: 'play', label: 'Augmented 4th — the tritone (C–F♯)', seq: true, notes: ['C', 'F#'] },
+        { type: 'play', label: 'Diminished 5th — same sound (C–G♭)', seq: true, notes: ['C', 'Gb'] },
         { type: 'play', label: 'Compare: Perfect 5th (C–G)', seq: true, notes: ['C', 'G'] },
       ],
       quiz: [
@@ -105,7 +113,7 @@ export default {
         { q: 'Listen — which interval is this?', audio: { notes: ['C', 'G'], label: 'Play the interval' },
           choices: ['Minor 2nd', 'Major 3rd', 'Perfect 5th', 'Octave'], answer: 2,
           explain: 'C up to G, strong and open — a perfect 5th.' },
-        { q: 'Listen — is this major or minor?', audio: { notes: ['A', 'C'], label: 'Play the interval' },
+        { q: 'Listen — which interval is this?', audio: { notes: ['A', 'C'], label: 'Play the interval' },
           choices: ['Major 3rd', 'Minor 3rd', 'Perfect 4th', 'Major 2nd'], answer: 1,
           explain: 'A up to C is 3 half steps — a minor 3rd (darker colour).' },
       ],
