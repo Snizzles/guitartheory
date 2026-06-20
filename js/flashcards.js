@@ -5,7 +5,7 @@
 'use strict';
 
 import {
-  buildABC, scaleToABC, getChordNotes, getScaleNotes, getInterval, noteAtInterval, INTERVAL_CATALOG,
+  buildABC, scaleToABC, getChordNotes, getScaleNotes, getInterval, noteAtInterval, INTERVAL_CATALOG, octaveScale,
   keySignature, relativeMinor, chordSymbol, chordFullName, pitchClass,
   CHROMATIC_SHARP, CHROMATIC_FLAT, CIRCLE_OF_FIFTHS
 } from './theory.js';
@@ -162,7 +162,7 @@ const DECKS = [
         prompt: 'Spell this scale',
         q: { html: big(`${fmt(root)} ${scale}`) },
         a: { html: notes.map(chip).join(' '), abc: scaleToABC(root, scale) },
-        play: { notes: notes.map(n => ({ name: n, octave: 4 })).concat([{ name: notes[0], octave: 5 }]) }
+        play: { notes: octaveScale(notes) }
       };
     }
   },
@@ -188,7 +188,7 @@ const DECKS = [
         prompt: 'Key signature?',
         q: { html: big(`${fmt(key)} major`) },
         a: { html: `<strong>${ans}</strong><br><span class="fc-muted">Relative minor: ${fmt(relativeMinor(key))} minor</span>` },
-        play: { notes: getScaleNotes(key, 'Major').map(n => ({ name: n, octave: 4 })).concat([{ name: key, octave: 5 }]) }
+        play: { notes: octaveScale(getScaleNotes(key, 'Major')) }
       };
     }
   }

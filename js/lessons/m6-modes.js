@@ -1,5 +1,5 @@
 // Module 6 — Modes
-import { scaleToABC, getScaleNotes } from '../theory.js';
+import { scaleToABC, getScaleNotes, octaveScale } from '../theory.js';
 
 export default {
   id: 'modes',
@@ -20,7 +20,7 @@ export default {
           <p>Modes are how one parent scale yields seven distinct colours.</p>` },
         { type: 'notation', caption: 'D Dorian — white keys from D to D.', abc: scaleToABC('D', 'Dorian', { octave: 4 }) },
         { type: 'play', label: 'Hear D Dorian', seq: true,
-          notes: getScaleNotes('D', 'Dorian').map(n => ({ name: n, octave: 4 })).concat([{ name: 'D', octave: 5 }]) },
+          notes: octaveScale(getScaleNotes('D', 'Dorian')) },
       ],
       quiz: [
         { q: 'Playing the white keys from D to D gives which mode?',
@@ -44,11 +44,11 @@ export default {
           <p>Each has one <strong>characteristic note</strong> that gives its flavour: Lydian’s ♯4 (dreamy),
           Mixolydian’s ♭7 (bluesy), Dorian’s natural 6 (hopeful minor), Phrygian’s ♭2 (Spanish).</p>` },
         { type: 'play', label: 'Lydian (bright, ♯4) — C Lydian', seq: true,
-          notes: getScaleNotes('C', 'Lydian').map(n => ({ name: n, octave: 4 })).concat([{ name: 'C', octave: 5 }]) },
+          notes: octaveScale(getScaleNotes('C', 'Lydian')) },
         { type: 'play', label: 'Mixolydian (♭7) — C Mixolydian', seq: true,
-          notes: getScaleNotes('C', 'Mixolydian').map(n => ({ name: n, octave: 4 })).concat([{ name: 'C', octave: 5 }]) },
+          notes: octaveScale(getScaleNotes('C', 'Mixolydian')) },
         { type: 'play', label: 'Phrygian (dark, ♭2) — C Phrygian', seq: true,
-          notes: getScaleNotes('C', 'Phrygian').map(n => ({ name: n, octave: 4 })).concat([{ name: 'C', octave: 5 }]) },
+          notes: octaveScale(getScaleNotes('C', 'Phrygian')) },
       ],
       quiz: [
         { q: 'Which note makes a mode sound major or minor?',

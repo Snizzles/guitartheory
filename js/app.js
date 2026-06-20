@@ -12,7 +12,7 @@ import { DECKS, getDeck } from './flashcards.js';
 import {
   NOTE_CHOICES, SCALE_NAMES, CHORD_TYPES,
   getScaleNotes, getChordNotes, getInterval, noteAtInterval, INTERVAL_CATALOG,
-  keySignature, relativeMinor, chordSymbol, chordFullName, buildABC, scaleToABC
+  keySignature, relativeMinor, chordSymbol, chordFullName, buildABC, scaleToABC, octaveScale
 } from './theory.js';
 import * as progress from './progress.js';
 
@@ -365,8 +365,7 @@ function scaleLab(mount, { root = 'C', scale = 'Major' } = {}) {
     } catch (e) { out.textContent = 'n/a'; }
   }
   playBtn.addEventListener('click', () => {
-    const seq = currentNotes.map(n => ({ name: n, octave: 4 })).concat([{ name: currentNotes[0], octave: 5 }]);
-    playSequence(seq, 0.4);
+    playSequence(octaveScale(currentNotes), 0.4);
   });
   rootSel.addEventListener('change', update);
   scaleSel.addEventListener('change', update);
@@ -452,7 +451,7 @@ function circleOfFifths(mount, _cfg) {
     const sigText = sig.type === 'none' ? 'no sharps or flats'
       : `${sig.count} ${sig.type}${sig.count > 1 ? 's' : ''}: ${sig.notes.map(fmtAcc).join(', ')}`;
     detail.innerHTML = `<strong>${fmtAcc(key)} major</strong> — ${sigText}.<br>Relative minor: <strong>${fmtAcc(relativeMinor(key))} minor</strong>.`;
-    if (!silent) playSequence(getScaleNotes(key, 'Major').map(n => ({ name: n, octave: 4 })).concat([{ name: key, octave: 5 }]), 0.28);
+    if (!silent) playSequence(octaveScale(getScaleNotes(key, 'Major')), 0.28);
   }
   selectKey('C', svg.querySelector('.cof-key'), true);   // initial select, no auto-play
 }

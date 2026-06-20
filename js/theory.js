@@ -486,20 +486,25 @@ function buildABC(events, opts = {}) {
   return header + body;
 }
 
-// Convenience: ABC for a scale ascending within one octave (auto octave bumps)
-function scaleToABC(root, scaleName, opts = {}) {
-  const notes = getScaleNotes(root, scaleName);
-  const startOct = opts.octave ?? 4;
-  let prevPc = -1;
-  let oct = startOct;
-  const events = notes.map((n, i) => {
+// Turn a list of spelled notes into octave-bearing notes that really ascend —
+// bumping the octave whenever a letter wraps past B (e.g. the C after B in a
+// Dorian scale) — and append the tonic an octave up on top. Used for both
+// notation and audio so a scale sounds like a scale, not a sequence that dips.
+function octaveScale(names, startOct = 4) {
+  let prevPc = -1, oct = startOct;
+  const out = names.map((n, i) => {
     const pc = pitchClass(n);
     if (i > 0 && pc <= prevPc) oct++; // letter wrapped past B → next octave
     prevPc = pc;
     return { name: n, octave: oct };
   });
-  // add the octave root on top (fixed at one octave above the start)
-  events.push({ name: notes[0], octave: startOct + 1 });
+  out.push({ name: names[0], octave: startOct + 1 });
+  return out;
+}
+
+// Convenience: ABC for a scale ascending within one octave (auto octave bumps)
+function scaleToABC(root, scaleName, opts = {}) {
+  const events = octaveScale(getScaleNotes(root, scaleName), opts.octave ?? 4);
   return buildABC(events, { dur: '4', perLine: 8, ...opts });
 }
 
@@ -519,5 +524,5 @@ export {
   getScaleNotes, getModeNotes, keySignature, relativeMinor, relativeMajor,
   getChordNotes, chordSymbol, chordFullName, CHORD_NAMES,
   identifyChord, diatonicTriads, diatonicSevenths,
-  noteToABC, buildABC, scaleToABC
+  noteToABC, buildABC, scaleToABC, octaveScale
 };
