@@ -199,6 +199,32 @@ header {
 .sec-prose strong { color: var(--text); }
 .sec-prose em { color: var(--text-muted); font-style: italic; }
 
+/* Reference tables inside lessons */
+.theory-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.84rem;
+  margin: 0.5rem 0 0.25rem;
+}
+.theory-table th, .theory-table td {
+  text-align: left;
+  padding: 0.34rem 0.6rem;
+  border-bottom: 1px solid var(--border);
+}
+.theory-table thead th {
+  color: var(--accent);
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.theory-table tbody tr:last-child td { border-bottom: none; }
+.theory-table td:nth-child(3) { color: var(--text); font-weight: 600; }
+.theory-table tr.hl td {
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-weight: 600;
+}
+
 .card-block {
   background: var(--surface);
   border: 1px solid var(--border);
