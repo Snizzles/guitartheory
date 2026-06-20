@@ -5,7 +5,7 @@
 'use strict';
 
 import {
-  buildABC, scaleToABC, getChordNotes, getScaleNotes, getInterval, transposeNote,
+  buildABC, scaleToABC, getChordNotes, getScaleNotes, getInterval, noteAtInterval, INTERVAL_CATALOG, octaveScale,
   keySignature, relativeMinor, chordSymbol, chordFullName, pitchClass,
   CHROMATIC_SHARP, CHROMATIC_FLAT, CIRCLE_OF_FIFTHS
 } from './theory.js';
@@ -129,17 +129,21 @@ const DECKS = [
       { id: 'all', label: 'All intervals' }
     ],
     generate(levelId = 'basic') {
-      const semis = levelId === 'basic' ? [2, 3, 4, 5, 7, 12] : [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
+      // Generate the upper note BY INTERVAL (not by transposing a semitone count) so the
+      // staff spelling and the printed name always agree, e.g. C's minor 3rd is E♭, not D♯.
+      const pool = levelId === 'basic'
+        ? INTERVAL_CATALOG.filter(iv => ['M2', 'm3', 'M3', 'P4', 'P5', 'P8'].includes(iv.short))
+        : INTERVAL_CATALOG.filter(iv => iv.short !== 'P1');
       const root = pick(levelId === 'basic' ? COMMON_ROOTS : CORE_ROOTS);
-      const semi = pick(semis);
-      const topFull = transposeNote(root + '4', semi);
+      const iv = pick(pool);
+      const topFull = noteAtInterval(root + '4', iv.steps, iv.semis);
       const m = topFull.match(/([A-G][#b]*)(\d+)/);
       const topName = m[1], topOct = parseInt(m[2], 10);
-      const info = getInterval(root + '4', topFull);   // octave-aware (so 12 → P8)
+      const info = getInterval(root + '4', topFull);   // spelling-aware
       return {
         prompt: 'Name the interval',
         q: { abc: buildABC([root + '4', topFull], { clef: 'treble', dur: '4' }) },
-        a: { html: `<strong>${info.name}</strong>` },
+        a: { html: `<strong>${info.name}</strong> <span class="fc-muted">(${info.short})</span>` },
         play: { notes: [{ name: root, octave: 4 }, { name: topName, octave: topOct }] }
       };
     }
@@ -158,7 +162,7 @@ const DECKS = [
         prompt: 'Spell this scale',
         q: { html: big(`${fmt(root)} ${scale}`) },
         a: { html: notes.map(chip).join(' '), abc: scaleToABC(root, scale) },
-        play: { notes: notes.map(n => ({ name: n, octave: 4 })).concat([{ name: notes[0], octave: 5 }]) }
+        play: { notes: octaveScale(notes) }
       };
     }
   },
@@ -184,7 +188,7 @@ const DECKS = [
         prompt: 'Key signature?',
         q: { html: big(`${fmt(key)} major`) },
         a: { html: `<strong>${ans}</strong><br><span class="fc-muted">Relative minor: ${fmt(relativeMinor(key))} minor</span>` },
-        play: { notes: getScaleNotes(key, 'Major').map(n => ({ name: n, octave: 4 })).concat([{ name: key, octave: 5 }]) }
+        play: { notes: octaveScale(getScaleNotes(key, 'Major')) }
       };
     }
   }

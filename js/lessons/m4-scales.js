@@ -1,5 +1,5 @@
 // Module 4 — Scales
-import { scaleToABC, getScaleNotes } from '../theory.js';
+import { scaleToABC, getScaleNotes, octaveScale } from '../theory.js';
 
 export default {
   id: 'scales',
@@ -19,7 +19,7 @@ export default {
           C D E F G A B C. Notice the two half steps fall exactly at E–F and B–C.</p>` },
         { type: 'notation', caption: 'C major scale, ascending.', abc: scaleToABC('C', 'Major') },
         { type: 'play', label: 'Hear C major', seq: true,
-          notes: getScaleNotes('C', 'Major').map((n, i) => ({ name: n, octave: 4 })).concat([{ name: 'C', octave: 5 }]) },
+          notes: octaveScale(getScaleNotes('C', 'Major')) },
         { type: 'callout', variant: 'key', title: 'Scale degrees',
           html: 'Each note has a number (1–7) and a name: 1 = tonic, 4 = subdominant, 5 = dominant, 7 = leading tone. Degree 1 is “home.”' },
         { type: 'interactive', widget: 'scaleLab', config: { root: 'G', scale: 'Major' },
@@ -50,9 +50,15 @@ export default {
           </ul>` },
         { type: 'notation', caption: 'A natural minor scale.', abc: scaleToABC('A', 'Natural Minor', { octave: 4 }) },
         { type: 'play', label: 'Hear A natural minor', seq: true,
-          notes: getScaleNotes('A', 'Natural Minor').map(n => ({ name: n, octave: 4 })).concat([{ name: 'A', octave: 5 }]) },
+          notes: octaveScale(getScaleNotes('A', 'Natural Minor')) },
         { type: 'play', label: 'Hear A harmonic minor (raised 7th)', seq: true,
-          notes: getScaleNotes('A', 'Harmonic Minor').map(n => ({ name: n, octave: 4 })).concat([{ name: 'A', octave: 5 }]) },
+          notes: octaveScale(getScaleNotes('A', 'Harmonic Minor')) },
+        { type: 'notation', caption: 'A melodic minor, ascending — the 6th (F♯) and 7th (G♯) are raised.',
+          abc: scaleToABC('A', 'Melodic Minor') },
+        { type: 'play', label: 'Hear A melodic minor — ascending (raised 6th & 7th)', seq: true,
+          notes: octaveScale(getScaleNotes('A', 'Melodic Minor')) },
+        { type: 'play', label: 'Hear it descending — reverting to natural minor (G♮, F♮)', seq: true,
+          notes: octaveScale(getScaleNotes('A', 'Natural Minor')).slice().reverse() },
       ],
       quiz: [
         { q: 'The natural minor step pattern is…',
@@ -78,9 +84,9 @@ export default {
           <strong>blues scale</strong>.</p>` },
         { type: 'notation', caption: 'C major pentatonic (5 notes).', abc: scaleToABC('C', 'Pentatonic Major') },
         { type: 'play', label: 'Hear C minor pentatonic', seq: true,
-          notes: getScaleNotes('C', 'Pentatonic Minor').map(n => ({ name: n, octave: 4 })).concat([{ name: 'C', octave: 5 }]) },
+          notes: octaveScale(getScaleNotes('C', 'Pentatonic Minor')) },
         { type: 'play', label: 'Hear C blues scale (with ♭5)', seq: true,
-          notes: getScaleNotes('C', 'Blues').map(n => ({ name: n, octave: 4 })).concat([{ name: 'C', octave: 5 }]) },
+          notes: octaveScale(getScaleNotes('C', 'Blues')) },
       ],
       quiz: [
         { q: 'How many notes are in a pentatonic scale?',

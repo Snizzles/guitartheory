@@ -11,8 +11,8 @@ import { renderQuiz } from './quiz.js';
 import { DECKS, getDeck } from './flashcards.js';
 import {
   NOTE_CHOICES, SCALE_NAMES, CHORD_TYPES,
-  getScaleNotes, getChordNotes, getInterval, transposeNote,
-  keySignature, relativeMinor, chordSymbol, chordFullName, buildABC, scaleToABC
+  getScaleNotes, getChordNotes, getInterval, noteAtInterval, INTERVAL_CATALOG,
+  keySignature, relativeMinor, chordSymbol, chordFullName, buildABC, scaleToABC, octaveScale
 } from './theory.js';
 import * as progress from './progress.js';
 
@@ -310,23 +310,21 @@ function intervalLab(mount, { root = 'C' } = {}) {
   const mount2 = el('div', 'notation-mount');
   mount.appendChild(mount2);
 
-  const intervals = [
-    ['m2', 1], ['M2', 2], ['m3', 3], ['M3', 4], ['P4', 5], ['TT', 6],
-    ['P5', 7], ['m6', 8], ['M6', 9], ['m7', 10], ['M7', 11], ['P8', 12]
-  ];
-  function show(semi, silent) {
+  // A4 and d5 are both offered so the tritone is explored as both spellings.
+  const intervals = INTERVAL_CATALOG.filter(iv => iv.short !== 'P1');
+  function show(iv, silent) {
     const r = rootSel.value;
-    const topFull = transposeNote(r + '4', semi);     // e.g. "G4" or "C5"
-    const m = topFull.match(/([A-G][#b]?)(\d+)/);
+    const topFull = noteAtInterval(r + '4', iv.steps, iv.semis); // correctly spelled, e.g. "Gb4"
+    const m = topFull.match(/([A-G][#b]*)(\d+)/);
     const topName = m[1], topOct = parseInt(m[2], 10);
     const info = getInterval(r + '4', topFull);        // octave-aware (so P8 ≠ P1)
-    out.innerHTML = `<strong>${fmtAcc(r)}</strong> → <strong>${fmtAcc(topName)}</strong> &nbsp;·&nbsp; ${info.name}`;
+    out.innerHTML = `<strong>${fmtAcc(r)}</strong> → <strong>${fmtAcc(topName)}</strong> &nbsp;·&nbsp; ${info.name} (${info.short})`;
     mountNotation(mount2, buildABC([r + '4', topFull], { clef: 'treble', dur: '4' }), { clickToHear: true });
     if (!silent) playInterval(r, topName, 4, topOct);
   }
-  intervals.forEach(([name, semi]) => {
-    const b = el('button', 'lab-chip', name);
-    b.addEventListener('click', () => { setActive(btns, b); show(semi); });
+  intervals.forEach(iv => {
+    const b = el('button', 'lab-chip', iv.short);
+    b.addEventListener('click', () => { setActive(btns, b); show(iv); });
     btns.appendChild(b);
   });
   rootSel.addEventListener('change', () => {
@@ -335,7 +333,7 @@ function intervalLab(mount, { root = 'C' } = {}) {
   });
   // initial render without auto-playing audio
   setActive(btns, btns.firstChild);
-  show(intervals[0][1], true);
+  show(intervals[0], true);
 }
 
 // Scale explorer
@@ -367,8 +365,7 @@ function scaleLab(mount, { root = 'C', scale = 'Major' } = {}) {
     } catch (e) { out.textContent = 'n/a'; }
   }
   playBtn.addEventListener('click', () => {
-    const seq = currentNotes.map(n => ({ name: n, octave: 4 })).concat([{ name: currentNotes[0], octave: 5 }]);
-    playSequence(seq, 0.4);
+    playSequence(octaveScale(currentNotes), 0.4);
   });
   rootSel.addEventListener('change', update);
   scaleSel.addEventListener('change', update);
@@ -454,7 +451,7 @@ function circleOfFifths(mount, _cfg) {
     const sigText = sig.type === 'none' ? 'no sharps or flats'
       : `${sig.count} ${sig.type}${sig.count > 1 ? 's' : ''}: ${sig.notes.map(fmtAcc).join(', ')}`;
     detail.innerHTML = `<strong>${fmtAcc(key)} major</strong> — ${sigText}.<br>Relative minor: <strong>${fmtAcc(relativeMinor(key))} minor</strong>.`;
-    if (!silent) playSequence(getScaleNotes(key, 'Major').map(n => ({ name: n, octave: 4 })).concat([{ name: key, octave: 5 }]), 0.28);
+    if (!silent) playSequence(octaveScale(getScaleNotes(key, 'Major')), 0.28);
   }
   selectKey('C', svg.querySelector('.cof-key'), true);   // initial select, no auto-play
 }
