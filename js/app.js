@@ -1,599 +1,458 @@
-// app.js — App init, routing, session management
+// app.js — Course shell: routing, lesson rendering, interactive widgets, progress.
 
 'use strict';
 
-import { TUNING_PRESETS, ALL_NOTES,
-         getNoteAtPosition, getScalePositions, getAllPositionsForNote } from './theory.js';
-import { Fretboard, COLORS } from './fretboard.js';
 import {
-  buildNoteMemoSession, buildIntervalSession, buildScaleSession, buildChordSession,
-  getStreak, getWeakSpots, loadStats, shuffle
-} from './exercises.js';
+  MODULES, LESSONS, getLesson, nextLesson, prevLesson, moduleLessonIds, allLessonIds
+} from './lessons/index.js';
+import { renderNotation } from './notation.js';
+import { playNote, playSequence, playChord, playInterval } from './audio.js';
+import { renderQuiz } from './quiz.js';
+import {
+  NOTE_CHOICES, SCALE_NAMES, CHORD_TYPES,
+  getScaleNotes, getChordNotes, getInterval, transposeNote,
+  keySignature, relativeMinor, chordSymbol, buildABC, scaleToABC
+} from './theory.js';
+import * as progress from './progress.js';
 
-// ─── State ─────────────────────────────────────────────────────────────────────
+const ALL_IDS = allLessonIds();
 
-const state = {
-  tuning: [...TUNING_PRESETS['Standard']],
-  currentPage: 'home',
-  session: null,
-  fretboard: null,
-  pendingPositions: [],
-  awaitingPositions: false
-};
-
-// ─── Tuning Management ─────────────────────────────────────────────────────────
-
-function loadTuning() {
-  try {
-    const saved = localStorage.getItem('mt_tuning');
-    if (saved) state.tuning = JSON.parse(saved);
-  } catch {}
+// ─── Element helpers ────────────────────────────────────────────────────────
+function el(tag, cls, html) {
+  const e = document.createElement(tag);
+  if (cls) e.className = cls;
+  if (html != null) e.innerHTML = html;
+  return e;
 }
+const $ = sel => document.querySelector(sel);
 
-function saveTuning() {
-  localStorage.setItem('mt_tuning', JSON.stringify(state.tuning));
+// ─── Routing ────────────────────────────────────────────────────────────────
+function currentRoute() {
+  const h = location.hash.replace(/^#\/?/, '');
+  if (h.startsWith('lesson/')) return { view: 'lesson', id: h.slice('lesson/'.length) };
+  return { view: 'home' };
 }
+function go(hash) { location.hash = hash; }
 
-function initTuningUI() {
-  const select = document.getElementById('tuning-preset');
-  const custom = document.getElementById('tuning-custom');
+// ─── Sidebar ────────────────────────────────────────────────────────────────
+function renderSidebar() {
+  const nav = $('#sidebar-nav');
+  nav.innerHTML = '';
+  const route = currentRoute();
 
-  // Populate preset options
-  select.innerHTML = '';
-  for (const name of Object.keys(TUNING_PRESETS)) {
-    const opt = document.createElement('option');
-    opt.value = name;
-    opt.textContent = name;
-    select.appendChild(opt);
-  }
-  const customOpt = document.createElement('option');
-  customOpt.value = 'Custom';
-  customOpt.textContent = 'Custom';
-  select.appendChild(customOpt);
+  const home = el('button', 'side-home' + (route.view === 'home' ? ' active' : ''), '🏠 Course Home');
+  home.addEventListener('click', () => go('#/home'));
+  nav.appendChild(home);
 
-  // Detect which preset matches current tuning
-  const currentStr = JSON.stringify(state.tuning);
-  let matched = false;
-  for (const [name, t] of Object.entries(TUNING_PRESETS)) {
-    if (JSON.stringify(t) === currentStr) {
-      select.value = name;
-      matched = true;
-      break;
-    }
-  }
-  if (!matched) select.value = 'Custom';
+  MODULES.forEach((mod, mi) => {
+    const mp = progress.modulePercent(moduleLessonIds(mod.id));
+    const modWrap = el('div', 'side-module');
+    modWrap.appendChild(el('div', 'side-module-title',
+      `<span>${mi + 1}. ${mod.title}</span><span class="side-module-prog">${mp.done}/${mp.total}</span>`));
 
-  updateCustomTuningUI();
-
-  select.addEventListener('change', () => {
-    if (select.value === 'Custom') {
-      custom.style.display = 'flex';
-    } else {
-      state.tuning = [...TUNING_PRESETS[select.value]];
-      saveTuning();
-      custom.style.display = 'none';
-      updateCustomTuningUI();
-      onTuningChanged();
-    }
+    const list = el('div', 'side-lessons');
+    mod.lessons.forEach(lesson => {
+      const done = progress.isComplete(lesson.id);
+      const active = route.view === 'lesson' && route.id === lesson.id;
+      const btn = el('button', 'side-lesson' + (active ? ' active' : ''),
+        `<span class="tick ${done ? 'done' : ''}">${done ? '✓' : '○'}</span> ${lesson.title}`);
+      btn.addEventListener('click', () => go('#/lesson/' + lesson.id));
+      list.appendChild(btn);
+    });
+    modWrap.appendChild(list);
+    nav.appendChild(modWrap);
   });
 }
 
-function updateCustomTuningUI() {
-  const custom = document.getElementById('tuning-custom');
-  const inputs = custom.querySelectorAll('input');
-  inputs.forEach((inp, i) => {
-    inp.value = state.tuning[i] || '';
-    inp.oninput = () => {
-      state.tuning[i] = inp.value.trim() || state.tuning[i];
-      saveTuning();
-      onTuningChanged();
-    };
-  });
-}
-
-function onTuningChanged() {
-  if (state.fretboard) {
-    state.fretboard.setTuning(state.tuning);
-  }
-}
-
-// ─── Navigation ────────────────────────────────────────────────────────────────
-
-function navigate(page) {
-  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
-
-  const pageEl = document.getElementById(`page-${page}`);
-  if (pageEl) {
-    pageEl.classList.add('active');
-    const navBtn = document.querySelector(`[data-page="${page}"]`);
-    if (navBtn) navBtn.classList.add('active');
-    state.currentPage = page;
-
-    if (page === 'home') renderHome();
-  }
-}
-
-// ─── Home / Dashboard ──────────────────────────────────────────────────────────
-
+// ─── Home view ──────────────────────────────────────────────────────────────
 function renderHome() {
-  const streak = getStreak();
-  document.getElementById('streak-count').textContent = streak.count;
-  document.getElementById('streak-date').textContent =
-    streak.lastDate ? `Last session: ${streak.lastDate}` : 'No sessions yet';
+  const main = $('#content');
+  const pct = progress.coursePercent(ALL_IDS);
+  const last = progress.getLastLesson();
+  const resumeId = last && getLesson(last) ? last : LESSONS[0].id;
+  const resumeLesson = getLesson(resumeId);
+  const started = progress.completedCount() > 0 || last;
 
-  // Weak spots
-  const weakEl = document.getElementById('weak-spots');
-  const weak = getWeakSpots('', 5);
-  if (weak.length === 0) {
-    weakEl.innerHTML = '<em style="color:#6b7280">No data yet — start a session!</em>';
-  } else {
-    weakEl.innerHTML = weak.map(w => {
-      const pct = Math.round(w.accuracy * 100);
-      const label = w.key.replace(/_/g, ' ').replace(/^(note|interval|scale|chord) /, '');
-      return `<div class="weak-item">
-        <span class="weak-label">${label}</span>
-        <span class="weak-pct ${pct < 50 ? 'bad' : 'ok'}">${pct}%</span>
+  main.innerHTML = '';
+  const hero = el('div', 'hero');
+  hero.appendChild(el('h1', null, 'Music Theory'));
+  hero.appendChild(el('p', 'hero-sub',
+    'A structured, hands-on course — from reading the staff to building chords and progressions. Every concept is shown in notation you can hear and explore.'));
+
+  const bar = el('div', 'home-progress');
+  bar.appendChild(el('div', 'progress-track', `<div class="progress-fill" style="width:${pct}%"></div>`));
+  bar.appendChild(el('div', 'progress-pct', `${pct}% complete`));
+  hero.appendChild(bar);
+
+  const actions = el('div', 'hero-actions');
+  const cont = el('button', 'btn-primary',
+    started ? `▶ Continue: ${resumeLesson.title}` : '▶ Start the course');
+  cont.addEventListener('click', () => go('#/lesson/' + resumeId));
+  actions.appendChild(cont);
+  if (started) {
+    const reset = el('button', 'btn-ghost', 'Reset progress');
+    reset.addEventListener('click', () => {
+      if (confirm('Clear all saved progress?')) { progress.resetAll(); render(); }
+    });
+    actions.appendChild(reset);
+  }
+  hero.appendChild(actions);
+  main.appendChild(hero);
+
+  const grid = el('div', 'module-cards');
+  MODULES.forEach((mod, mi) => {
+    const mp = progress.modulePercent(moduleLessonIds(mod.id));
+    const card = el('button', 'module-card');
+    card.innerHTML = `
+      <div class="mc-num">${mi + 1}</div>
+      <div class="mc-body">
+        <div class="mc-title">${mod.title}</div>
+        <div class="mc-blurb">${mod.blurb}</div>
+        <div class="mc-foot"><div class="progress-track sm"><div class="progress-fill" style="width:${mp.pct}%"></div></div><span>${mp.done}/${mp.total}</span></div>
       </div>`;
-    }).join('');
-  }
-}
-
-// ─── Exercise Runner ───────────────────────────────────────────────────────────
-
-function startSession(session) {
-  state.session = session;
-  state.pendingPositions = [];
-  state.awaitingPositions = false;
-  navigate('exercise');
-  renderExercise();
-}
-
-function renderExercise() {
-  const sess = state.session;
-  if (!sess || sess.isDone) {
-    showSummary();
-    return;
-  }
-
-  const q = sess.current;
-  const container = document.getElementById('exercise-area');
-  container.innerHTML = '';
-
-  // Progress bar
-  const progressWrap = document.getElementById('exercise-progress');
-  const pct = (sess.currentIndex / sess.total) * 100;
-  progressWrap.innerHTML = `
-    <div class="progress-bar">
-      <div class="progress-fill" style="width:${pct}%"></div>
-    </div>
-    <span class="progress-label">${sess.currentIndex + 1} / ${sess.total}</span>
-  `;
-
-  const prompt = document.createElement('div');
-  prompt.className = 'exercise-prompt';
-  prompt.innerHTML = q.prompt;
-  container.appendChild(prompt);
-
-  // Render by type
-  switch (q.type) {
-    case 'find_note':    renderFindNote(q, container); break;
-    case 'name_note':    renderNameNote(q, container); break;
-    case 'identify_interval': renderMultiChoice(q, container, true); break;
-    case 'find_interval':    renderFindInterval(q, container); break;
-    case 'name_scale':   renderMultiChoice(q, container); break;
-    case 'build_scale':  renderBuildScale(q, container); break;
-    case 'chord_notes':  renderMultiChoice(q, container); break;
-    case 'name_chord':   renderMultiChoice(q, container); break;
-    default:             renderMultiChoice(q, container); break;
-  }
-}
-
-// Shared fretboard setup
-function setupFretboard(container, tuning, clickable = true, frets = 12) {
-  const fbContainer = document.createElement('div');
-  fbContainer.className = 'fretboard-container';
-  container.appendChild(fbContainer);
-
-  const fb = new Fretboard();
-  fb.render(fbContainer, { tuning, frets, clickable });
-  state.fretboard = fb;
-  return fb;
-}
-
-// Multiple choice questions (no fretboard interaction needed)
-function renderMultiChoice(q, container, showFretboard = false) {
-  if (showFretboard && q.positionA && q.positionB) {
-    const fb = setupFretboard(container, q.tuning, false);
-    fb.highlight([
-      { ...q.positionA, color: COLORS.root, label: q.noteA },
-      { ...q.positionB, color: COLORS.scale, label: q.noteB }
-    ]);
-  }
-
-  const choicesEl = document.createElement('div');
-  choicesEl.className = 'choices';
-  q.choices.forEach((choice, i) => {
-    const btn = document.createElement('button');
-    btn.className = 'choice-btn';
-    btn.innerHTML = `<span class="choice-num">${i + 1}</span> ${choice}`;
-    btn.dataset.value = choice;
-    btn.addEventListener('click', () => handleMultiChoiceAnswer(choice, q, choicesEl));
-    choicesEl.appendChild(btn);
+    card.addEventListener('click', () => go('#/lesson/' + mod.lessons[0].id));
+    grid.appendChild(card);
   });
-  container.appendChild(choicesEl);
-
-  // Keyboard shortcuts
-  state._keyHandler = (e) => {
-    const n = parseInt(e.key);
-    if (n >= 1 && n <= q.choices.length) {
-      const btn = choicesEl.querySelectorAll('.choice-btn')[n - 1];
-      if (btn && !btn.disabled) btn.click();
-    }
-  };
-  document.addEventListener('keydown', state._keyHandler);
+  main.appendChild(grid);
+  $('#content-scroll').scrollTop = 0;
 }
 
-function handleMultiChoiceAnswer(selected, q, choicesEl) {
-  document.removeEventListener('keydown', state._keyHandler);
-  const isCorrect = selected === q.correctAnswer;
-  state.session.answer(isCorrect);
+// ─── Lesson view ────────────────────────────────────────────────────────────
+function renderLesson(id) {
+  const lesson = getLesson(id);
+  if (!lesson) { go('#/home'); return; }
+  progress.setLastLesson(id);
 
-  choicesEl.querySelectorAll('.choice-btn').forEach(btn => {
-    btn.disabled = true;
-    if (btn.dataset.value === q.correctAnswer) btn.classList.add('correct');
-    else if (btn.dataset.value === selected && !isCorrect) btn.classList.add('incorrect');
+  const main = $('#content');
+  main.innerHTML = '';
+
+  const header = el('div', 'lesson-header');
+  header.appendChild(el('div', 'lesson-eyebrow', `${lesson.moduleIndex + 1}. ${lesson.moduleTitle}`));
+  header.appendChild(el('h1', 'lesson-title', lesson.title));
+  main.appendChild(header);
+
+  lesson.sections.forEach(sec => main.appendChild(renderSection(sec)));
+
+  // Quiz
+  const quizWrap = el('div', 'lesson-quiz card-block');
+  quizWrap.appendChild(el('h2', 'block-label', 'Check your understanding'));
+  const quizMount = el('div');
+  quizWrap.appendChild(quizMount);
+  main.appendChild(quizWrap);
+
+  // Footer nav
+  const footer = el('div', 'lesson-nav');
+  const prev = prevLesson(id);
+  const next = nextLesson(id);
+  const prevBtn = el('button', 'btn-secondary', prev ? '← Previous' : '← Home');
+  prevBtn.addEventListener('click', () => go(prev ? '#/lesson/' + prev.id : '#/home'));
+  footer.appendChild(prevBtn);
+
+  const nextBtn = el('button', 'btn-primary next-btn', next ? 'Next lesson →' : 'Finish course →');
+  function refreshNext() {
+    const unlocked = progress.isComplete(id);
+    nextBtn.disabled = !unlocked;
+    nextBtn.title = unlocked ? '' : 'Pass the quiz to unlock';
+    nextBtn.classList.toggle('locked', !unlocked);
+  }
+  nextBtn.addEventListener('click', () => {
+    if (nextBtn.disabled) return;
+    go(next ? '#/lesson/' + next.id : '#/home');
   });
+  footer.appendChild(nextBtn);
+  main.appendChild(footer);
 
-  showFeedback(isCorrect, q.correctAnswer);
-  setTimeout(() => renderExercise(), 1200);
-}
-
-// Name Note: fretboard with one position highlighted, pick the note name
-function renderNameNote(q, container) {
-  const fb = setupFretboard(container, q.tuning, false, q.frets);
-  fb.showReferenceNotes(q.referenceFilter);
-  fb.highlight([{ string: q.string, fret: q.fret, color: COLORS.accent, label: '?' }]);
-  renderMultiChoice(q, container);
-}
-
-// Find Note: click all instances of a note on the fretboard
-function renderFindNote(q, container) {
-  const fb = setupFretboard(container, q.tuning, true, q.frets);
-  fb.showReferenceNotes(q.referenceFilter);
-  const targets = new Set(q.targets.map(p => `${p.string},${p.fret}`));
-  const clicked = new Set();
-
-  const hint = document.createElement('div');
-  hint.className = 'find-hint';
-  hint.textContent = `Find ${targets.size} notes`;
-  container.appendChild(hint);
-
-  const submitBtn = document.createElement('button');
-  submitBtn.className = 'submit-btn';
-  submitBtn.textContent = 'Submit';
-  submitBtn.style.display = 'none';
-  container.appendChild(submitBtn);
-
-  fb.onClick((s, f, note) => {
-    const key = `${s},${f}`;
-    if (clicked.has(key)) {
-      clicked.delete(key);
-      fb.clearHighlight([{ string: s, fret: f }]);
-    } else {
-      clicked.add(key);
-      const isTarget = targets.has(key);
-      fb.highlight([{ string: s, fret: f, color: COLORS.highlight }]);
-    }
-    hint.textContent = `${clicked.size} selected / ${targets.size} needed`;
-    submitBtn.style.display = clicked.size > 0 ? 'block' : 'none';
+  renderQuiz(quizMount, lesson.quiz, () => {
+    progress.markComplete(id);
+    refreshNext();
+    renderSidebar();
   });
+  refreshNext();
+  $('#content-scroll').scrollTop = 0;
+}
 
-  submitBtn.addEventListener('click', () => {
-    submitBtn.disabled = true;
-    fb.clickCallback = null;
+// ─── Section renderers ──────────────────────────────────────────────────────
+function renderSection(sec) {
+  switch (sec.type) {
+    case 'prose':    return el('div', 'sec-prose', typeof sec.html === 'function' ? sec.html() : sec.html);
+    case 'callout':  return renderCallout(sec);
+    case 'notation': return renderNotationSection(sec);
+    case 'play':     return renderPlaySection(sec);
+    case 'interactive': return renderWidget(sec);
+    default:         return el('div', null, '');
+  }
+}
 
-    let allCorrect = true;
-    // Check clicked vs targets
-    for (const key of clicked) {
-      const isTarget = targets.has(key);
-      const [s, f] = key.split(',').map(Number);
-      fb.highlights.set(key, { color: isTarget ? COLORS.correct : COLORS.incorrect, label: getNoteAtPosition(s, f, q.tuning) });
-      if (!isTarget) allCorrect = false;
-    }
-    for (const key of targets) {
-      if (!clicked.has(key)) {
-        const [s, f] = key.split(',').map(Number);
-        fb.highlights.set(key, { color: COLORS.incorrect, label: getNoteAtPosition(s, f, q.tuning) });
-        allCorrect = false;
+function renderCallout(sec) {
+  const c = el('div', 'callout ' + (sec.variant || 'tip'));
+  if (sec.title) c.appendChild(el('div', 'callout-title', sec.title));
+  c.appendChild(el('div', 'callout-body', typeof sec.html === 'function' ? sec.html() : sec.html));
+  return c;
+}
+
+function renderNotationSection(sec) {
+  const wrap = el('div', 'sec-notation card-block');
+  const mount = el('div', 'notation-mount');
+  wrap.appendChild(mount);
+  if (sec.caption) wrap.appendChild(el('div', 'notation-caption', sec.caption));
+  // Defer render until in DOM so abcjs sizing works
+  queueMicrotask(() => renderNotation(mount, sec.abc, { clickToHear: sec.clickToHear !== false }));
+  return wrap;
+}
+
+function playSection(sec) {
+  if (sec.chordSeq) {
+    sec.chordSeq.forEach((chord, i) => setTimeout(() => playChord(chord, 0.9), i * 750));
+  } else if (sec.chord) {
+    playChord(sec.notes);
+  } else {
+    playSequence(sec.notes, 0.45);
+  }
+}
+function renderPlaySection(sec) {
+  const btn = el('button', 'play-btn', `▶ ${sec.label || 'Play'}`);
+  btn.addEventListener('click', () => playSection(sec));
+  return btn;
+}
+
+// ─── Interactive widgets ────────────────────────────────────────────────────
+function renderWidget(sec) {
+  const wrap = el('div', 'widget card-block');
+  const body = el('div', 'widget-body');
+  wrap.appendChild(body);
+  if (sec.caption) wrap.appendChild(el('div', 'notation-caption', sec.caption));
+  const fns = { pianoMini, intervalLab, scaleLab, chordLab, circleOfFifths };
+  (fns[sec.widget] || (() => {}))(body, sec.config || {});
+  return wrap;
+}
+
+// Mini interactive piano keyboard
+function pianoMini(mount, { from = 'C', octaves = 1 } = {}) {
+  const whiteSeq = ['C', 'D', 'E', 'F', 'G', 'A', 'B'];
+  const blackAfter = { C: 'C#', D: 'D#', F: 'F#', G: 'G#', A: 'A#' };
+  const kb = el('div', 'piano');
+  const startIdx = whiteSeq.indexOf(from) === -1 ? 0 : whiteSeq.indexOf(from);
+  let oct = 4;
+  for (let o = 0; o < octaves; o++) {
+    for (let i = 0; i < 7; i++) {
+      const letter = whiteSeq[(startIdx + i) % 7];
+      if (i > 0 && (startIdx + i) % 7 === 0) oct++;
+      const white = el('div', 'pkey white');
+      white.dataset.note = letter; white.dataset.oct = oct;
+      white.appendChild(el('span', 'pkey-label', letter));
+      const blackName = blackAfter[letter];
+      if (blackName && !(letter === 'B')) {
+        const black = el('div', 'pkey black');
+        black.dataset.note = blackName; black.dataset.oct = oct;
+        white.appendChild(black);
       }
+      kb.appendChild(white);
     }
-    fb._drawNoteMarkers();
-
-    const isCorrect = allCorrect && clicked.size === targets.size;
-    state.session.answer(isCorrect);
-    showFeedback(isCorrect);
-    setTimeout(() => renderExercise(), 1600);
-  });
-}
-
-// Find Interval: given a root, click the target note at the given interval
-function renderFindInterval(q, container) {
-  const fb = setupFretboard(container, q.tuning, true);
-  fb.highlight([{ ...q.rootPosition, color: COLORS.root, label: q.rootNote }]);
-
-  const targets = new Set(q.targets.map(p => `${p.string},${p.fret}`));
-
-  fb.onClick((s, f, note) => {
-    const key = `${s},${f}`;
-    const isCorrect = targets.has(key);
-    fb.clickCallback = null;
-
-    // Show all target positions
-    fb.highlight(q.targets.map(p => ({ ...p, color: COLORS.correct, label: q.targetNote })));
-    if (!isCorrect) {
-      fb.highlight([{ string: s, fret: f, color: COLORS.incorrect, label: note }]);
-    }
-
-    state.session.answer(isCorrect);
-    showFeedback(isCorrect, `Target: ${q.targetNote}`);
-    setTimeout(() => renderExercise(), 1600);
-  });
-}
-
-// Build Scale: click all scale tones
-function renderBuildScale(q, container) {
-  const fb = setupFretboard(container, q.tuning, true);
-
-  // Show root as hint
-  const rootPositions = q.targets.filter(p => p.isRoot);
-  if (rootPositions.length > 0) {
-    fb.highlight([{ ...rootPositions[0], color: COLORS.root, label: q.root }]);
   }
-
-  const targets = new Set(q.targets.map(p => `${p.string},${p.fret}`));
-  const clicked = new Set();
-
-  const hint = document.createElement('div');
-  hint.className = 'find-hint';
-  hint.textContent = `Select ${q.targets.length} notes`;
-  container.appendChild(hint);
-
-  const submitBtn = document.createElement('button');
-  submitBtn.className = 'submit-btn';
-  submitBtn.textContent = 'Submit';
-  submitBtn.style.display = 'none';
-  container.appendChild(submitBtn);
-
-  fb.onClick((s, f, note) => {
-    const key = `${s},${f}`;
-    if (clicked.has(key)) {
-      clicked.delete(key);
-      const wasRoot = rootPositions.some(p => p.string === s && p.fret === f);
-      if (wasRoot) fb.highlight([{ string: s, fret: f, color: COLORS.root, label: q.root }]);
-      else fb.clearHighlight([{ string: s, fret: f }]);
-    } else {
-      clicked.add(key);
-      fb.highlight([{ string: s, fret: f, color: COLORS.highlight, label: note }]);
-    }
-    hint.textContent = `${clicked.size} selected / ${q.targets.length} needed`;
-    submitBtn.style.display = clicked.size > 0 ? 'block' : 'none';
+  kb.addEventListener('click', e => {
+    const key = e.target.closest('.pkey');
+    if (!key) return;
+    e.stopPropagation();
+    playNote(key.dataset.note, parseInt(key.dataset.oct, 10), 0.7);
+    key.classList.add('pressed');
+    setTimeout(() => key.classList.remove('pressed'), 200);
   });
+  mount.appendChild(kb);
+}
 
-  submitBtn.addEventListener('click', () => {
-    submitBtn.disabled = true;
-    fb.clickCallback = null;
+// Interval explorer
+function intervalLab(mount, { root = 'C' } = {}) {
+  const ctrl = el('div', 'lab-controls');
+  ctrl.appendChild(el('label', null, 'Root'));
+  const rootSel = selectEl(NOTE_CHOICES, root);
+  ctrl.appendChild(rootSel);
+  mount.appendChild(ctrl);
 
-    let allCorrect = true;
-    for (const key of clicked) {
-      const [s, f] = key.split(',').map(Number);
-      const isTarget = targets.has(key);
-      fb.highlights.set(key, { color: isTarget ? COLORS.correct : COLORS.incorrect, label: getNoteAtPosition(s, f, q.tuning) });
-      if (!isTarget) allCorrect = false;
-    }
-    for (const key of targets) {
-      if (!clicked.has(key)) {
-        const [s, f] = key.split(',').map(Number);
-        fb.highlights.set(key, { color: COLORS.incorrect, label: '' });
-        allCorrect = false;
-      }
-    }
-    fb._drawNoteMarkers();
+  const btns = el('div', 'lab-chips');
+  mount.appendChild(btns);
+  const out = el('div', 'lab-out');
+  mount.appendChild(out);
+  const mount2 = el('div', 'notation-mount');
+  mount.appendChild(mount2);
 
-    const isCorrect = allCorrect && clicked.size === targets.size;
-    state.session.answer(isCorrect);
-    showFeedback(isCorrect);
-    setTimeout(() => renderExercise(), 1600);
+  const intervals = [
+    ['m2', 1], ['M2', 2], ['m3', 3], ['M3', 4], ['P4', 5], ['TT', 6],
+    ['P5', 7], ['m6', 8], ['M6', 9], ['m7', 10], ['M7', 11], ['P8', 12]
+  ];
+  function show(semi) {
+    const r = rootSel.value;
+    const topFull = transposeNote(r + '4', semi);     // e.g. "G4" or "C5"
+    const m = topFull.match(/([A-G][#b]?)(\d+)/);
+    const topName = m[1], topOct = parseInt(m[2], 10);
+    const info = getInterval(r, topName);
+    out.innerHTML = `<strong>${r}</strong> → <strong>${topName}</strong> &nbsp;·&nbsp; ${info.name}`;
+    renderNotation(mount2, buildABC([r + '4', topFull], { clef: 'treble', dur: '4' }), { clickToHear: true });
+    playInterval(r, topName, 4, topOct);
+  }
+  intervals.forEach(([name, semi]) => {
+    const b = el('button', 'lab-chip', name);
+    b.addEventListener('click', () => { setActive(btns, b); show(semi); });
+    btns.appendChild(b);
   });
+  rootSel.addEventListener('change', () => {
+    const active = btns.querySelector('.lab-chip.active');
+    if (active) active.click();
+  });
+  btns.firstChild.click();
 }
 
-// ─── Feedback ──────────────────────────────────────────────────────────────────
+// Scale explorer
+function scaleLab(mount, { root = 'C', scale = 'Major' } = {}) {
+  const ctrl = el('div', 'lab-controls');
+  ctrl.appendChild(el('label', null, 'Root'));
+  const rootSel = selectEl(NOTE_CHOICES, root);
+  ctrl.appendChild(rootSel);
+  ctrl.appendChild(el('label', null, 'Scale'));
+  const scaleSel = selectEl(SCALE_NAMES, scale);
+  ctrl.appendChild(scaleSel);
+  mount.appendChild(ctrl);
 
-function showFeedback(isCorrect, detail = '') {
-  const fb = document.getElementById('feedback-banner');
-  fb.className = 'feedback-banner ' + (isCorrect ? 'correct' : 'incorrect');
-  fb.textContent = isCorrect ? '✓ Correct!' : `✗ Incorrect${detail ? ' — ' + detail : ''}`;
-  fb.style.display = 'block';
-  setTimeout(() => { fb.style.display = 'none'; }, 1100);
-}
+  const out = el('div', 'lab-out');
+  mount.appendChild(out);
+  const mount2 = el('div', 'notation-mount');
+  mount.appendChild(mount2);
+  const playBtn = el('button', 'play-btn', '▶ Play scale');
+  mount.appendChild(playBtn);
 
-// ─── Session Summary ───────────────────────────────────────────────────────────
-
-function showSummary() {
-  const container = document.getElementById('exercise-area');
-  const progressWrap = document.getElementById('exercise-progress');
-  progressWrap.innerHTML = '';
-
-  const result = state.session.summary();
-  const pct = Math.round(result.accuracy * 100);
-
-  container.innerHTML = `
-    <div class="summary">
-      <h2>Session Complete</h2>
-      <div class="summary-score">${result.correct} / ${result.total}</div>
-      <div class="summary-pct ${pct >= 70 ? 'good' : 'needs-work'}">${pct}%</div>
-      <p class="summary-msg">${pct >= 90 ? 'Excellent!' : pct >= 70 ? 'Good work!' : 'Keep practicing!'}</p>
-      <div class="summary-actions">
-        <button class="btn-primary" onclick="app.navigate('home')">Home</button>
-        <button class="btn-secondary" onclick="app.repeatSession()">Repeat</button>
-      </div>
-    </div>
-  `;
-}
-
-// ─── Fretboard Explorer ────────────────────────────────────────────────────────
-
-function initExplorer() {
-  const container = document.getElementById('explorer-fretboard');
-  const fb = new Fretboard();
-  fb.render(container, { tuning: state.tuning, frets: 24, clickable: false });
-
-  function updateExplorer() {
-    const root = document.getElementById('exp-root').value;
-    const type = document.getElementById('exp-type').value;
-    const mode = document.getElementById('exp-mode').value;
-
-    fb.setTuning(state.tuning);
-    fb.reset();
-
+  let currentNotes = [];
+  function update() {
+    const r = rootSel.value, s = scaleSel.value;
     try {
-      if (mode === 'scale') {
-        const positions = getScalePositions(root, type, state.tuning, 24);
-        fb.highlight(positions.map(p => ({
-          ...p,
-          color: p.isRoot ? COLORS.root : COLORS.scale,
-          label: p.note
-        })));
-      } else {
-        // note
-        const positions = getAllPositionsForNote(root, state.tuning, 24);
-        fb.highlight(positions.map(p => ({
-          ...p,
-          color: COLORS.root,
-          label: root
-        })));
-      }
-    } catch (e) {
-      console.warn(e);
-    }
+      const notes = getScaleNotes(r, s);
+      currentNotes = notes;
+      out.innerHTML = notes.map(n => `<span class="note-chip">${n}</span>`).join('');
+      renderNotation(mount2, scaleToABC(r, s), { clickToHear: true });
+    } catch (e) { out.textContent = 'n/a'; }
   }
-
-  document.getElementById('exp-root').addEventListener('change', updateExplorer);
-  document.getElementById('exp-type').addEventListener('change', updateExplorer);
-  document.getElementById('exp-mode').addEventListener('change', () => {
-    const mode = document.getElementById('exp-mode').value;
-    document.getElementById('exp-type-wrap').style.display = mode === 'scale' ? '' : 'none';
-    updateExplorer();
+  playBtn.addEventListener('click', () => {
+    const seq = currentNotes.map(n => ({ name: n, octave: 4 })).concat([{ name: currentNotes[0], octave: 5 }]);
+    playSequence(seq, 0.4);
   });
-
-  // Populate scale type selector
-  const typeSelect = document.getElementById('exp-type');
-  typeSelect.innerHTML = '';
-  for (const name of ['Major', 'Natural Minor', 'Harmonic Minor', 'Melodic Minor',
-    'Pentatonic Major', 'Pentatonic Minor', 'Blues', 'Dorian', 'Phrygian',
-    'Lydian', 'Mixolydian', 'Locrian', 'Whole Tone', 'Phrygian Dominant']) {
-    const opt = document.createElement('option');
-    opt.value = name;
-    opt.textContent = name;
-    typeSelect.appendChild(opt);
-  }
-
-  // Populate root selector
-  const rootSelect = document.getElementById('exp-root');
-  rootSelect.innerHTML = '';
-  for (const n of ALL_NOTES) {
-    const opt = document.createElement('option');
-    opt.value = n;
-    opt.textContent = n;
-    rootSelect.appendChild(opt);
-  }
-
-  updateExplorer();
+  rootSel.addEventListener('change', update);
+  scaleSel.addEventListener('change', update);
+  update();
 }
 
-// ─── Module Setup UIs ──────────────────────────────────────────────────────────
+// Chord explorer
+function chordLab(mount, { root = 'C', type = 'Major' } = {}) {
+  const ctrl = el('div', 'lab-controls');
+  ctrl.appendChild(el('label', null, 'Root'));
+  const rootSel = selectEl(NOTE_CHOICES, root);
+  ctrl.appendChild(rootSel);
+  ctrl.appendChild(el('label', null, 'Type'));
+  const typeSel = selectEl(CHORD_TYPES, type);
+  ctrl.appendChild(typeSel);
+  mount.appendChild(ctrl);
 
-function setupModuleUI(moduleId) {
-  const el = document.getElementById(`page-${moduleId}`);
-  if (!el) return;
+  const out = el('div', 'lab-out');
+  mount.appendChild(out);
+  const mount2 = el('div', 'notation-mount');
+  mount.appendChild(mount2);
+  const playBtn = el('button', 'play-btn', '▶ Play chord');
+  mount.appendChild(playBtn);
 
-  // Populate all note/scale/chord selectors in this module's setup UI
-  el.querySelectorAll('select.notes-select').forEach(sel => {
-    sel.innerHTML = ALL_NOTES.map(n => `<option value="${n}">${n}</option>`).join('');
-  });
+  let currentNotes = [];
+  function update() {
+    const r = rootSel.value, t = typeSel.value;
+    const notes = getChordNotes(r, t);
+    currentNotes = notes;
+    out.innerHTML = `<strong>${chordSymbol(r, t)}</strong> &nbsp; ` +
+      notes.map(n => `<span class="note-chip">${n}</span>`).join('');
+    renderNotation(mount2, buildABC([{ chord: notes }], { clef: 'treble', dur: '2' }), { clickToHear: true });
+  }
+  playBtn.addEventListener('click', () => playChord(currentNotes));
+  rootSel.addEventListener('change', update);
+  typeSel.addEventListener('change', update);
+  update();
 }
 
-// ─── App Init ─────────────────────────────────────────────────────────────────
+// Circle of fifths
+function circleOfFifths(mount, _cfg) {
+  const order = ['C', 'G', 'D', 'A', 'E', 'B', 'F#', 'Db', 'Ab', 'Eb', 'Bb', 'F'];
+  const size = 280, cx = size / 2, cy = size / 2, rOuter = 120, rInner = 78;
+  const svgNS = 'http://www.w3.org/2000/svg';
+  const svg = document.createElementNS(svgNS, 'svg');
+  svg.setAttribute('viewBox', `0 0 ${size} ${size}`);
+  svg.setAttribute('class', 'cof-svg');
+
+  order.forEach((key, i) => {
+    const ang = (i / 12) * 2 * Math.PI - Math.PI / 2;
+    const x = cx + Math.cos(ang) * rOuter;
+    const y = cy + Math.sin(ang) * rOuter;
+    const g = document.createElementNS(svgNS, 'g');
+    g.setAttribute('class', 'cof-key');
+    g.style.cursor = 'pointer';
+    const circle = document.createElementNS(svgNS, 'circle');
+    circle.setAttribute('cx', x); circle.setAttribute('cy', y); circle.setAttribute('r', 22);
+    const text = document.createElementNS(svgNS, 'text');
+    text.setAttribute('x', x); text.setAttribute('y', y + 5);
+    text.setAttribute('text-anchor', 'middle'); text.textContent = key;
+    g.appendChild(circle); g.appendChild(text);
+    g.addEventListener('click', () => selectKey(key, g));
+    svg.appendChild(g);
+
+    // inner ring: relative minor
+    const rm = relativeMinor(key);
+    const xi = cx + Math.cos(ang) * rInner, yi = cy + Math.sin(ang) * rInner;
+    const t2 = document.createElementNS(svgNS, 'text');
+    t2.setAttribute('x', xi); t2.setAttribute('y', yi + 4);
+    t2.setAttribute('text-anchor', 'middle'); t2.setAttribute('class', 'cof-minor');
+    t2.textContent = rm + 'm';
+    svg.appendChild(t2);
+  });
+  mount.appendChild(svg);
+  const detail = el('div', 'cof-detail');
+  mount.appendChild(detail);
+
+  function selectKey(key, g) {
+    svg.querySelectorAll('.cof-key').forEach(k => k.classList.remove('active'));
+    g.classList.add('active');
+    const sig = keySignature(key);
+    const sigText = sig.type === 'none' ? 'no sharps or flats'
+      : `${sig.count} ${sig.type}${sig.count > 1 ? 's' : ''}: ${sig.notes.join(', ')}`;
+    detail.innerHTML = `<strong>${key} major</strong> — ${sigText}.<br>Relative minor: <strong>${relativeMinor(key)} minor</strong>.`;
+    playSequence(getScaleNotes(key, 'Major').map(n => ({ name: n, octave: 4 })).concat([{ name: key, octave: 5 }]), 0.28);
+  }
+  selectKey('C', svg.querySelector('.cof-key'));
+}
+
+// ─── Small UI utils ─────────────────────────────────────────────────────────
+function selectEl(options, selected) {
+  const s = el('select', 'lab-select');
+  options.forEach(o => {
+    const opt = el('option', null, o);
+    opt.value = o;
+    if (o === selected) opt.selected = true;
+    s.appendChild(opt);
+  });
+  return s;
+}
+function setActive(parent, btn) {
+  parent.querySelectorAll('.lab-chip').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+}
+
+// ─── Render dispatch ────────────────────────────────────────────────────────
+function render() {
+  renderSidebar();
+  const route = currentRoute();
+  if (route.view === 'lesson') renderLesson(route.id);
+  else renderHome();
+  // close mobile sidebar on navigation
+  document.body.classList.remove('sidebar-open');
+}
 
 function init() {
-  loadTuning();
-  initTuningUI();
-
-  // Nav buttons
-  document.querySelectorAll('.nav-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const page = btn.dataset.page;
-      navigate(page);
-      if (page === 'explorer') initExplorer();
-    });
-  });
-
-  // Module start buttons
-  function getNotesDifficulty() {
-    return document.querySelector('#notes-difficulty .diff-btn.active')?.dataset.diff || 'medium';
-  }
-  document.getElementById('btn-start-notes-find').addEventListener('click', () =>
-    startSession(buildNoteMemoSession(state.tuning, 'find', 10, getNotesDifficulty())));
-  document.getElementById('btn-start-notes-name').addEventListener('click', () =>
-    startSession(buildNoteMemoSession(state.tuning, 'name', 10, getNotesDifficulty())));
-  document.getElementById('btn-start-intervals-id').addEventListener('click', () =>
-    startSession(buildIntervalSession(state.tuning, 'identify', 10)));
-  document.getElementById('btn-start-intervals-find').addEventListener('click', () =>
-    startSession(buildIntervalSession(state.tuning, 'find', 10)));
-  document.getElementById('btn-start-scales-name').addEventListener('click', () =>
-    startSession(buildScaleSession(state.tuning, 'name', 10)));
-  document.getElementById('btn-start-scales-build').addEventListener('click', () =>
-    startSession(buildScaleSession(state.tuning, 'build', 10)));
-  document.getElementById('btn-start-chords-notes').addEventListener('click', () =>
-    startSession(buildChordSession(state.tuning, 'notes', 10)));
-  document.getElementById('btn-start-chords-name').addEventListener('click', () =>
-    startSession(buildChordSession(state.tuning, 'name', 10)));
-
-  // Difficulty picker toggle
-  document.querySelectorAll('.diff-picker').forEach(picker => {
-    picker.querySelectorAll('.diff-btn').forEach(btn => {
-      btn.addEventListener('click', () => {
-        picker.querySelectorAll('.diff-btn').forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-      });
-    });
-  });
-
-  // Tuning custom inputs
-  const customDiv = document.getElementById('tuning-custom');
-  customDiv.style.display = 'none';
-
-  navigate('home');
+  window.addEventListener('hashchange', render);
+  $('#menu-toggle').addEventListener('click', () => document.body.classList.toggle('sidebar-open'));
+  $('#sidebar-backdrop').addEventListener('click', () => document.body.classList.remove('sidebar-open'));
+  if (!location.hash) location.hash = '#/home';
+  render();
 }
-
-function repeatSession() {
-  if (state.session) {
-    const ModuleBuilders = {
-      'notes_find':       () => buildNoteMemoSession(state.tuning, 'find', state.session.total, state.session.questions[0]?.difficulty || 'medium'),
-      'notes_name':       () => buildNoteMemoSession(state.tuning, 'name', state.session.total, state.session.questions[0]?.difficulty || 'medium'),
-      'intervals_identify': () => buildIntervalSession(state.tuning, 'identify', state.session.total),
-      'intervals_find':   () => buildIntervalSession(state.tuning, 'find', state.session.total),
-      'scales_name':      () => buildScaleSession(state.tuning, 'name', state.session.total),
-      'scales_build':     () => buildScaleSession(state.tuning, 'build', state.session.total),
-      'chords_notes':     () => buildChordSession(state.tuning, 'notes', state.session.total),
-      'chords_name':      () => buildChordSession(state.tuning, 'name', state.session.total),
-    };
-    const builder = ModuleBuilders[state.session.module];
-    if (builder) startSession(builder());
-  }
-}
-
-// Expose to global for inline onclick handlers
-window.app = { navigate, repeatSession };
 
 document.addEventListener('DOMContentLoaded', init);

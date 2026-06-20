@@ -1,61 +1,66 @@
-# Guitar Theory Trainer
+# Music Theory — A Structured Course
 
-A browser-based music theory learning app built for guitarists. Sessions are short (10 questions, ~3 minutes), use spaced repetition, and are directly applicable to real playing.
+A browser-based course that teaches music theory from the ground up — instrument-neutral,
+notation-first, and fully interactive. Every concept is shown in standard staff notation you
+can **click to hear**, with audio examples, interactive explorers, and a short quiz at the end
+of each lesson.
 
 **Live app:** https://snizzles.github.io/guitartheory/
 
+## The Course
+
+Eight modules, beginner → advanced:
+
+1. **Notation & Pitch** — the musical alphabet, the staff, treble & bass clefs, the grand staff, accidentals & the chromatic scale, half/whole steps
+2. **Reading Rhythm** — note values, time signatures & measures, rests, dots & ties
+3. **Intervals** — number & quality, major/minor/perfect, the tritone, ear training
+4. **Scales** — the major-scale formula, minor scales, pentatonic & blues
+5. **Keys & the Circle of Fifths** — key signatures, relative major/minor, the circle
+6. **Modes** — the seven modes and their characteristic colours
+7. **Triads & Diatonic Harmony** — building triads, inversions, Roman numerals
+8. **Seventh Chords & Progressions** — 7th chords, cadences, common progressions
+
 ## Features
 
-- **Note Memorization** — Find all instances of a note on the fretboard, or name a highlighted position
-- **Intervals** — Identify the interval between two highlighted notes, or locate a note at a given interval from a root
-- **Scale Patterns** — Name a highlighted scale pattern, or build one by clicking all the tones
-- **Chord Construction** — Recall the notes in a chord, or identify a chord from its notes
-- **Fretboard Explorer** — Visualize any scale or note across the full 24-fret neck, no scoring
-- **Custom Tunings** — 10 presets (Standard, Drop D, Drop C#, Drop C, Drop B, Open G, Open D, DADGAD, Half Down, Full Down) plus custom per-string input
-- **Spaced Repetition** — Weak spots surface more often; per-item accuracy tracked in `localStorage`
-- **Day Streak** — Tracks consecutive days you've practiced
+- **Interactive staff notation** — rendered with [abcjs](https://www.abcjs.net/); click any note to hear it
+- **Audio** — a built-in Web Audio synth plays notes, scales, intervals and chords (no samples to download)
+- **Interactive explorers** — a mini piano, an interval lab, scale & chord builders, and a clickable circle of fifths
+- **End-of-lesson quizzes** — pass to unlock the next lesson
+- **Progress tracking** — completion ticks, course %, and resume-where-you-left-off, saved in `localStorage`
 
 ## Tech Stack
 
-- Vanilla HTML + CSS + JavaScript — no build step, no dependencies
-- SVG fretboard rendered in JavaScript
-- `localStorage` for all progress and stats persistence
+- Vanilla HTML + CSS + ES modules — no build step
+- [abcjs](https://www.abcjs.net/) (vendored in `vendor/`) for notation rendering
+- Web Audio API for sound
+- `localStorage` for progress
 
 ## File Structure
 
 ```
-index.html        — Shell, navigation, all page containers
-css/style.css     — Dark theme, responsive/mobile-first layout
-js/theory.js      — Pure music theory: notes, intervals, scales, chords
-js/fretboard.js   — SVG fretboard component, tuning-aware
-js/exercises.js   — Exercise modules + spaced repetition scoring
-js/app.js         — App init, routing, session management
+index.html              — App shell: header, sidebar, content
+css/style.css           — Dark study theme + responsive layout
+vendor/abcjs-basic-min.js — Vendored notation library
+js/theory.js            — Music theory engine: notes, spelling, scales, keys, chords, ABC output
+js/audio.js             — Web Audio synth
+js/notation.js          — abcjs wrapper (render + click-to-hear)
+js/quiz.js              — End-of-lesson quiz engine
+js/progress.js          — localStorage progress tracking
+js/app.js               — Routing, lesson rendering, interactive widgets
+js/lessons/             — Lesson content (one file per module) + index
+.github/workflows/pages.yml — GitHub Pages deploy
 ```
 
 ## Running Locally
 
-Because the app uses ES modules (`type="module"`), you need to serve it over HTTP rather than opening `index.html` directly as a `file://` URL. Any static file server works:
+The app uses ES modules, so serve it over HTTP (not `file://`):
 
 ```bash
-# Python
 python3 -m http.server 8080
-
-# Node (npx)
-npx serve .
+# then open http://localhost:8080
 ```
 
-Then open http://localhost:8080.
+## Deployment
 
-## Keyboard Shortcuts
-
-| Key | Action |
-|-----|--------|
-| `1` – `4` | Select multiple-choice answer |
-
-## Scales Covered
-
-Major, Natural Minor, Harmonic Minor, Melodic Minor, Pentatonic Major, Pentatonic Minor, Blues, Dorian, Phrygian, Lydian, Mixolydian, Locrian, Whole Tone, Phrygian Dominant, Diminished (HW/WH)
-
-## Chords Covered
-
-Major, Minor, Augmented, Diminished, Sus2, Sus4, Dom7, Maj7, Min7, m7b5, Dim7, Aug7, Maj9, Dom9, Min9, Add9, Dom7b9, Dom7#9, 6, m6
+Pushes to `main` are deployed automatically by `.github/workflows/pages.yml`.
+One-time setup: **Settings → Pages → Source → "GitHub Actions"**.
