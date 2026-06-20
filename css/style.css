@@ -406,7 +406,21 @@ header {
 .fc-count { font-size: 0.74rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.06em; }
 .fc-prompt { font-size: 0.95rem; color: var(--text-muted); margin: 0.3rem 0 1rem; }
 .fc-q { margin-bottom: 1rem; }
-.fc-big { font-size: 2rem; font-weight: 700; color: var(--text); padding: 0.5rem 0; }
+.fc-big { font-size: 2rem; font-weight: 700; color: var(--text); padding: 0.5rem 0 0.1rem; }
+.fc-sub { font-size: 0.95rem; color: var(--text-muted); margin-bottom: 0.3rem; }
+
+/* Difficulty selector */
+.level-control {
+  display: flex; align-items: center; flex-wrap: wrap; gap: 0.4rem;
+  margin-bottom: 1rem;
+}
+.level-label { font-size: 0.78rem; color: var(--text-muted); margin-right: 0.2rem; }
+.level-btn {
+  background: var(--surface2); border: 1px solid var(--border); color: var(--text-muted);
+  padding: 0.35rem 0.7rem; border-radius: 999px; font-size: 0.8rem; cursor: pointer; font-weight: 600;
+}
+.level-btn:hover { border-color: var(--accent); color: var(--text); }
+.level-btn.active { background: var(--accent); border-color: var(--accent); color: #fff; }
 .fc-html { font-size: 1.05rem; }
 .fc-a {
   margin-top: 0.5rem;

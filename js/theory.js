@@ -259,6 +259,17 @@ function chordSymbol(root, chordType) {
   return root + (CHORD_SUFFIX[chordType] ?? ` ${chordType}`);
 }
 
+// Readable, spelled-out chord quality (for learners): "augmented", "dominant 7th"…
+const CHORD_NAMES = {
+  'Major': 'major', 'Minor': 'minor', 'Augmented': 'augmented', 'Diminished': 'diminished',
+  'Sus2': 'suspended 2nd', 'Sus4': 'suspended 4th', 'Maj7': 'major 7th', 'Dom7': 'dominant 7th',
+  'Min7': 'minor 7th', 'm7b5': 'half-diminished 7th', 'Dim7': 'diminished 7th',
+  'MinMaj7': 'minor-major 7th', '6': 'major 6th', 'm6': 'minor 6th'
+};
+function chordFullName(root, chordType) {
+  return `${root} ${CHORD_NAMES[chordType] || chordType}`;
+}
+
 // Identify chord name(s) from a set of note names
 function identifyChord(notes) {
   const inputPc = new Set(notes.map(pitchClass));
@@ -404,6 +415,7 @@ export {
   parseNote, accidentalStr, pitchClass, normalizeNote, notesEqual,
   spellWithLetter, semitonesBetween, getInterval, transposeNote,
   getScaleNotes, getModeNotes, keySignature, relativeMinor, relativeMajor,
-  getChordNotes, chordSymbol, identifyChord, diatonicTriads, diatonicSevenths,
+  getChordNotes, chordSymbol, chordFullName, CHORD_NAMES,
+  identifyChord, diatonicTriads, diatonicSevenths,
   noteToABC, buildABC, scaleToABC
 };
