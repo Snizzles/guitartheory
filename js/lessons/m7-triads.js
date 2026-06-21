@@ -108,5 +108,40 @@ export default {
           explain: 'Uppercase = major, lowercase = minor, ° = diminished.' },
       ],
     },
+    {
+      id: 'tri-minor',
+      title: 'Minor-Key Harmony',
+      sections: [
+        { type: 'prose', html: `
+          <p>Harmonise the <strong>natural minor</strong> scale the same way — a triad on every degree —
+          and the qualities run <strong>i ii° III iv v VI VII</strong> (in A minor: Am B° C Dm Em F G).</p>
+          <p>But that <strong>v</strong> is minor, so it lacks a strong pull home. The fix is to
+          <strong>raise the 7th</strong> (harmonic minor): the v becomes a major <strong>V</strong> with a
+          leading tone, and the chord on 7 becomes a diminished <strong>vii°</strong>:</p>` },
+        { type: 'prose', html: () => {
+            const t = diatonicTriads('A', 'Harmonic Minor');
+            return '<p style="text-align:center;line-height:2.2">' +
+              t.map(c => `<strong>${c.roman}</strong> = ${c.symbol}`).join(' &nbsp;·&nbsp; ') + '</p>';
+          } },
+        { type: 'play', label: 'i – iv – V – i in A minor (Am – Dm – E – Am)', chordSeq: [
+            getChordNotes('A', 'Minor'), getChordNotes('D', 'Minor'),
+            getChordNotes('E', 'Major'), getChordNotes('A', 'Minor')] },
+        { type: 'play', label: 'Compare the weaker minor v: Am – Dm – Em – Am', chordSeq: [
+            getChordNotes('A', 'Minor'), getChordNotes('D', 'Minor'),
+            getChordNotes('E', 'Minor'), getChordNotes('A', 'Minor')] },
+      ],
+      quiz: [
+        { q: 'In a minor key, the tonic chord (i) is…',
+          choices: ['Major', 'Minor', 'Diminished', 'Augmented'], answer: 1,
+          explain: 'Minor keys are built on a minor tonic triad (i).' },
+        { q: 'Why is the 7th often raised in a minor key?',
+          choices: ['To make the scale longer', 'To turn the minor v into a major V with a leading tone',
+                    'To remove the 3rd', 'To flatten the tonic'], answer: 1,
+          explain: 'The raised 7th is a leading tone, giving a strong major V → i pull (harmonic minor).' },
+        { q: 'With the raised 7th, the chord on degree 7 becomes…',
+          choices: ['Major', 'A diminished vii°', 'Augmented', 'Suspended'], answer: 1,
+          explain: 'Harmonic minor yields a diminished vii° (e.g. G♯° in A minor).' },
+      ],
+    },
   ],
 };
