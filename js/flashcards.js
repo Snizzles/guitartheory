@@ -161,7 +161,7 @@ const DECKS = [
       const pool = levelId === 'basic'
         ? INTERVAL_CATALOG.filter(iv => ['M2', 'm3', 'M3', 'P4', 'P5', 'P8'].includes(iv.short))
         : INTERVAL_CATALOG.filter(iv => iv.short !== 'P1');
-      const root = pick(levelId === 'basic' ? COMMON_ROOTS : CORE_ROOTS);
+      const root = pick(levelId === 'basic' ? COMMON_ROOTS : ALL_ROOTS); // match chord/scale decks' tiers
       const iv = pick(pool);
       const topFull = noteAtInterval(root + '4', iv.steps, iv.semis);
       const m = topFull.match(/([A-G][#b]*)(\d+)/);
