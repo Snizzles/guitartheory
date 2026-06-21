@@ -184,15 +184,9 @@ function renderLesson(id) {
   prevBtn.addEventListener('click', () => go(prev ? '#/lesson/' + prev.id : '#/home'));
   footer.appendChild(prevBtn);
 
+  // Lessons are freely navigable — quizzes are optional self-checks, not a gate.
   const nextBtn = el('button', 'btn-primary next-btn', next ? 'Next lesson →' : 'Finish course →');
-  function refreshNext() {
-    const unlocked = progress.isComplete(id);
-    nextBtn.disabled = !unlocked;
-    nextBtn.title = unlocked ? '' : 'Pass the quiz to unlock';
-    nextBtn.classList.toggle('locked', !unlocked);
-  }
   nextBtn.addEventListener('click', () => {
-    if (nextBtn.disabled) return;
     go(next ? '#/lesson/' + next.id : '#/home');
   });
   footer.appendChild(nextBtn);
@@ -200,10 +194,8 @@ function renderLesson(id) {
 
   renderQuiz(quizMount, lesson.quiz, () => {
     progress.markComplete(id);
-    refreshNext();
     renderSidebar();
   });
-  refreshNext();
   $('#content-scroll').scrollTop = 0;
 }
 

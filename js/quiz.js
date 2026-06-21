@@ -1,6 +1,6 @@
 // quiz.js — End-of-lesson check-for-understanding quiz.
 // Multiple-choice, one question at a time, with an optional audio prompt
-// (ear-training). Passing the threshold unlocks the next lesson.
+// (ear-training). Quizzes are optional self-checks; passing marks the lesson complete.
 
 'use strict';
 
@@ -92,8 +92,8 @@ function renderQuiz(container, questions, onPass) {
         <div class="quiz-score">${correctCount} / ${questions.length}</div>
         <div class="quiz-score-pct">${pct}%</div>
         <p class="quiz-result-msg">${didPass
-          ? 'Nice work — lesson complete! The next lesson is unlocked.'
-          : `You need ${Math.ceil(questions.length * PASS_THRESHOLD)} correct to pass. Review the lesson and try again.`}</p>
+          ? 'Nice work — that’s a pass! This lesson is marked complete. ✓'
+          : 'These quizzes are just self-checks — review the lesson and try again whenever you like.'}</p>
         <button class="btn-secondary quiz-retry">Try the quiz again</button>
       </div>`;
     card.querySelector('.quiz-retry').addEventListener('click', () => {
