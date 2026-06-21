@@ -17,7 +17,7 @@ export default {
           (F♯ C♯); F major has one flat (B♭).</p>` },
         { type: 'notation', caption: 'G major scale — notice the single F♯ in the key signature.',
           clickToHear: true,
-          abc: 'X:1\nM:none\nL:1/4\nK:G clef=treble\nG A B c d e ^f g |\n' },
+          abc: 'X:1\nM:none\nL:1/4\nK:G clef=treble\nG A B c d e f g |\n' },
         { type: 'callout', variant: 'tip', title: 'Order of sharps & flats',
           html: 'Sharps: <strong>F C G D A E B</strong> (“Father Charles Goes Down And Ends Battle”). Flats: reverse it — <strong>B E A D G C F</strong>.' },
       ],
@@ -39,7 +39,8 @@ export default {
         { type: 'prose', html: `
           <p>Every major key shares its key signature with a <strong>relative minor</strong> — the same
           notes, a different home. The relative minor starts on the <strong>6th degree</strong> of the
-          major scale, a minor 3rd (3 half steps) below the tonic.</p>
+          major scale — which is the same note as a minor 3rd (3 half steps) <em>below</em> the tonic
+          (two ways to find the same spot).</p>
           <p>C major ↔ A minor (no sharps/flats). G major ↔ E minor (one sharp). To find a relative
           minor quickly: count down three half steps from the major tonic.</p>` },
         { type: 'play', label: 'C major (bright)', seq: true,
@@ -67,8 +68,10 @@ export default {
           Move <strong>clockwise</strong> (up a 5th) and you add one sharp each step: C → G → D → A …
           Move <strong>counter-clockwise</strong> (down a 5th / up a 4th) and you add one flat:
           C → F → B♭ → E♭ …</p>
-          <p>It’s the master map of music: neighbouring keys are closely related, the inner ring shows
-          each relative minor, and it predicts chord progressions. Click any key below.</p>` },
+          <p>For example, start at <strong>C</strong> (0 sharps), step clockwise to <strong>G</strong>
+          (1 sharp), then <strong>D</strong> (2 sharps) — each step adds exactly one. It’s the master map
+          of music: neighbouring keys are closely related, the inner ring shows each relative minor, and
+          it predicts chord progressions. Click any key below.</p>` },
         { type: 'interactive', widget: 'circleOfFifths', config: {},
           caption: 'Click a key to see its signature and relative minor.' },
       ],

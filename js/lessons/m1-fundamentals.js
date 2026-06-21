@@ -15,8 +15,9 @@ export default {
           <strong>A&nbsp;B&nbsp;C&nbsp;D&nbsp;E&nbsp;F&nbsp;G</strong>. After G the names start
           over at A. That repeating cycle is the <em>musical alphabet</em>.</p>
           <p>When you pass through all seven letters and arrive back at the same letter, you have
-          travelled one <strong>octave</strong>. The two notes sound "the same, but higher/lower" —
-          they share a name because one vibrates at exactly twice the frequency of the other.</p>` },
+          travelled one <strong>octave</strong>. The two notes sound like the <em>same note</em>, just
+          higher or lower in pitch — they share a name because one vibrates at exactly twice the
+          frequency of the other.</p>` },
         { type: 'play', label: 'Hear A → A (one octave)', seq: true,
           notes: [{ name: 'A', octave: 3 }, { name: 'A', octave: 4 }] },
         { type: 'notation', caption: 'Eight notes of C up to the next C — a C-to-C octave.',
@@ -51,7 +52,7 @@ export default {
           <p>The <strong>treble clef</strong> (or G clef) curls around the second line from the
           bottom, marking it as <strong>G</strong>. From there the notes follow the musical
           alphabet up and down by line/space.</p>` },
-        { type: 'notation', caption: 'Treble-clef line notes, bottom to top: E G B D F.',
+        { type: 'notation', caption: 'Treble-clef line notes, bottom to top: E G B D F — G (the 2nd line) is where the clef curls.',
           abc: buildABC(['E', 'G', 'B', { name: 'D', octave: 5 }, { name: 'F', octave: 5 }],
             { clef: 'treble', dur: '4', perLine: 5, lyrics: ['E', 'G', 'B', 'D', 'F'] }) },
         { type: 'callout', variant: 'tip', title: 'Memory hooks',
@@ -76,8 +77,8 @@ export default {
       sections: [
         { type: 'prose', html: `
           <p>Lower instruments and the left hand of the piano use the <strong>bass clef</strong>
-          (F clef). Its two dots surround the second line from the top, marking it as
-          <strong>F</strong>.</p>
+          (F clef). Its two dots surround the second line from the top — the 4th line up — marking it
+          as <strong>F</strong>.</p>
           <p>Stack the treble clef above the bass clef and join them and you get the
           <strong>grand staff</strong>. The note that sits between them — on a short
           <em>ledger line</em> — is <strong>middle C</strong>, the centre of the piano.</p>
@@ -112,8 +113,9 @@ export default {
       sections: [
         { type: 'prose', html: `
           <p>Between the seven letter names live the “in-between” pitches. A <strong>sharp (♯)</strong>
-          raises a note by the smallest distance in Western music; a <strong>flat (♭)</strong> lowers
-          it. A <strong>natural (♮)</strong> cancels a sharp or flat.</p>
+          raises a note by the smallest distance in Western music (a <em>half step</em> — more next
+          lesson); a <strong>flat (♭)</strong> lowers it. A <strong>natural (♮)</strong> cancels a
+          sharp or flat.</p>
           <p>Play every pitch in order — letters and in-betweens — and you get the
           <strong>chromatic scale</strong>, twelve notes per octave:</p>
           <p style="text-align:center;font-size:1.05rem;letter-spacing:.04em">

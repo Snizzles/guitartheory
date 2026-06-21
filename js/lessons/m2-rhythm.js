@@ -11,14 +11,14 @@ export default {
         { type: 'prose', html: `
           <p>Pitch tells you <em>which</em> note; <strong>rhythm</strong> tells you <em>how long</em>
           it lasts. Note values are relative — each is half the length of the one before.
-          <strong>In 4/4 time</strong> (the beat counts below depend on the time signature):</p>
+          <strong>In 4/4 time</strong>:</p>
           <ul>
             <li><strong>Whole note</strong> — hollow head, no stem — 4 beats</li>
             <li><strong>Half note</strong> — hollow head with a stem — 2 beats</li>
             <li><strong>Quarter note</strong> — filled head with a stem — 1 beat</li>
             <li><strong>Eighth note</strong> — filled head, stem + flag — ½ beat</li>
           </ul>` },
-        { type: 'notation', caption: 'Whole, half, two quarters — each fills one 4/4 bar.',
+        { type: 'notation', caption: 'Whole note; two half notes; four quarter notes — each bar fills 4/4.',
           clickToHear: false,
           abc: 'X:1\nM:4/4\nL:1/4\nK:C\nC4 | C2 C2 | C C C C |\n' },
         { type: 'play', label: 'Hear quarter notes (a steady beat)', seq: true,
