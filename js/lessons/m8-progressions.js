@@ -22,6 +22,8 @@ export default {
             <li><strong>Half-diminished (m7♭5)</strong> — 1 ♭3 ♭5 ♭7. Tense, used in minor keys.</li>
           </ul>` },
         { type: 'notation', caption: 'C major 7 — C E G B.', abc: seventhChord('C', 'Maj7') },
+        { type: 'notation', caption: 'The same four tones spelled out — 1 3 5 7. The B on top is the 7th.',
+          abc: buildABC(['C', 'E', 'G', { name: 'B', octave: 4 }], { clef: 'treble', dur: '4', perLine: 4, lyrics: ['1', '3', '5', '7'] }) },
         { type: 'play', label: 'C maj7 (lush)', chord: true, notes: getChordNotes('C', 'Maj7') },
         { type: 'play', label: 'C7 (dominant — wants to resolve)', chord: true, notes: getChordNotes('C', 'Dom7') },
         { type: 'play', label: 'C m7 (smooth)', chord: true, notes: getChordNotes('C', 'Min7') },
@@ -102,6 +104,37 @@ export default {
           choices: ['It is louder', 'Its dominant-7th adds a leading tone into the target chord',
                     'It removes the 5th', 'It is always minor'], answer: 1,
           explain: 'The dominant 7th introduces a leading tone a half step below the target’s root.' },
+      ],
+    },
+    {
+      id: 'pro-figured',
+      title: 'Inversion Figures',
+      sections: [
+        { type: 'prose', html: `
+          <p>A Roman numeral can also show a chord’s <strong>inversion</strong> with small figures (from
+          figured bass) that say which chord tone is in the bass:</p>
+          <ul>
+            <li><strong>Triads:</strong> root position = no figure; <strong>6</strong> = first inversion
+            (3rd in the bass); <strong>6/4</strong> = second inversion (5th in the bass).</li>
+            <li><strong>Seventh chords:</strong> <strong>7</strong> = root; <strong>6/5</strong> = first;
+            <strong>4/3</strong> = second; <strong>4/2</strong> = third inversion (the 7th in the bass).</li>
+          </ul>
+          <p>So <strong>V6</strong> is a dominant triad with its 3rd in the bass; <strong>V4/3</strong> is a
+          dominant 7th with its 5th in the bass. The numbers are just the intervals above the bass note.</p>` },
+        { type: 'play', label: 'C → C6 → C6/4 (root, then 3rd, then 5th in the bass)', chordSeq: [
+            [{ name: 'C', octave: 4 }, { name: 'E', octave: 4 }, { name: 'G', octave: 4 }],
+            [{ name: 'E', octave: 4 }, { name: 'G', octave: 4 }, { name: 'C', octave: 5 }],
+            [{ name: 'G', octave: 4 }, { name: 'C', octave: 5 }, { name: 'E', octave: 5 }]] },
+      ],
+      quiz: [
+        { q: 'A “6” after a Roman numeral means the chord is…',
+          choices: ['A six-note chord', 'In first inversion (3rd in the bass)', 'Major', 'In root position'], answer: 1,
+          explain: 'The figure 6 marks first inversion — the 3rd is in the bass.' },
+        { q: 'For a seventh chord, which figure puts the 7th in the bass?',
+          choices: ['6/5', '4/3', '4/2', '7'], answer: 2, explain: '4/2 (third inversion) places the 7th in the bass.' },
+        { q: 'Inversion figures are counted from…',
+          choices: ['The tempo', 'The intervals above the bass note', 'The key signature', 'The clef'], answer: 1,
+          explain: 'Figured bass numbers the intervals above the bass.' },
       ],
     },
     {
