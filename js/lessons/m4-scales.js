@@ -80,7 +80,7 @@ export default {
           <p><strong>Pentatonic</strong> scales use just five notes. The <strong>major pentatonic</strong>
           is the major scale with the 4th and 7th removed (1 2 3 5 6) — bright and singable. The
           <strong>minor pentatonic</strong> (1 ♭3 4 5 ♭7) is the backbone of rock and blues solos.</p>
-          <p>Add one chromatic “blue note” (the ♭5) to the minor pentatonic and you get the
+          <p>Add one chromatic <strong>“blue note”</strong> (the ♭5) to the minor pentatonic and you get the
           <strong>blues scale</strong>.</p>` },
         { type: 'notation', caption: 'C major pentatonic (5 notes).', abc: scaleToABC('C', 'Pentatonic Major') },
         { type: 'play', label: 'Hear C minor pentatonic', seq: true,

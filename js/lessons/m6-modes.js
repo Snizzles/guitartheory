@@ -38,11 +38,11 @@ export default {
       title: 'Bright vs Dark Modes',
       sections: [
         { type: 'prose', html: `
-          <p>Whether a mode sounds “major” or “minor” depends on its 3rd. <strong>Major-type</strong>
-          modes (major 3rd): Lydian, Ionian, Mixolydian — brightest to least. <strong>Minor-type</strong>
-          modes (minor 3rd): Dorian, Aeolian, Phrygian, Locrian — least dark to darkest.</p>
+          <p>Whether a mode sounds “major” or “minor” depends on its 3rd. From <strong>brightest to
+          darkest</strong>, the seven modes run: Lydian, Ionian, Mixolydian (the major-3rd modes), then
+          Dorian, Aeolian, Phrygian, Locrian (the minor-3rd modes).</p>
           <p>Each has one <strong>characteristic note</strong> that gives its flavour: Lydian’s ♯4 (dreamy),
-          Mixolydian’s ♭7 (bluesy), Dorian’s natural 6 (hopeful minor), Phrygian’s ♭2 (Spanish).</p>` },
+          Mixolydian’s ♭7 (bluesy), Dorian’s natural 6 (hopeful minor), Phrygian’s ♭2 (dark, flamenco-flavoured).</p>` },
         { type: 'play', label: 'Lydian (bright, ♯4) — C Lydian', seq: true,
           notes: octaveScale(getScaleNotes('C', 'Lydian')) },
         { type: 'play', label: 'Mixolydian (♭7) — C Mixolydian', seq: true,
