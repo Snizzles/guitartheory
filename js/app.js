@@ -272,25 +272,45 @@ function pianoMini(mount, { from = 'C', octaves = 1 } = {}) {
       const oct = 4 + Math.floor(abs / 7);      // octave from absolute white-key index
       const white = el('div', 'pkey white');
       white.dataset.note = letter; white.dataset.oct = oct;
+      white.setAttribute('role', 'button');
+      white.setAttribute('tabindex', '0');
+      white.setAttribute('aria-label', `${letter}${oct}`);
       white.appendChild(el('span', 'pkey-label', letter));
       const blackName = blackAfter[letter];
       if (blackName && letter !== 'B') {
         const black = el('div', 'pkey black');
         black.dataset.note = blackName; black.dataset.oct = oct;
+        black.setAttribute('role', 'button');
+        black.setAttribute('tabindex', '0');
+        black.setAttribute('aria-label', `${fmtAcc(blackName)} ${oct}`);
         white.appendChild(black);
       }
       kb.appendChild(white);
     }
   }
+  const out = el('div', 'piano-out');
+  out.setAttribute('aria-live', 'polite');
+  function hit(key) {
+    playNote(key.dataset.note, parseInt(key.dataset.oct, 10), 0.7);
+    key.classList.add('pressed');
+    setTimeout(() => key.classList.remove('pressed'), 200);
+    out.textContent = `Played: ${fmtAcc(key.dataset.note)}${key.dataset.oct}`;
+  }
   kb.addEventListener('click', e => {
     const key = e.target.closest('.pkey');
     if (!key) return;
     e.stopPropagation();
-    playNote(key.dataset.note, parseInt(key.dataset.oct, 10), 0.7);
-    key.classList.add('pressed');
-    setTimeout(() => key.classList.remove('pressed'), 200);
+    hit(key);
+  });
+  kb.addEventListener('keydown', e => {
+    if (e.key !== 'Enter' && e.key !== ' ') return;
+    const key = e.target.closest('.pkey');
+    if (!key) return;
+    e.preventDefault(); e.stopPropagation();
+    hit(key);
   });
   mount.appendChild(kb);
+  mount.appendChild(out);
 }
 
 // Interval explorer
@@ -414,6 +434,8 @@ function circleOfFifths(mount, _cfg) {
   const svg = document.createElementNS(svgNS, 'svg');
   svg.setAttribute('viewBox', `0 0 ${size} ${size}`);
   svg.setAttribute('class', 'cof-svg');
+  svg.setAttribute('role', 'group');
+  svg.setAttribute('aria-label', 'Circle of fifths — activate a key to hear it and see its signature');
 
   order.forEach((key, i) => {
     const ang = (i / 12) * 2 * Math.PI - Math.PI / 2;
@@ -422,6 +444,9 @@ function circleOfFifths(mount, _cfg) {
     const g = document.createElementNS(svgNS, 'g');
     g.setAttribute('class', 'cof-key');
     g.style.cursor = 'pointer';
+    g.setAttribute('role', 'button');
+    g.setAttribute('tabindex', '0');
+    g.setAttribute('aria-label', `${fmtAcc(key)} major`);
     const circle = document.createElementNS(svgNS, 'circle');
     circle.setAttribute('cx', x); circle.setAttribute('cy', y); circle.setAttribute('r', 22);
     const text = document.createElementNS(svgNS, 'text');
@@ -429,6 +454,9 @@ function circleOfFifths(mount, _cfg) {
     text.setAttribute('text-anchor', 'middle'); text.textContent = key;
     g.appendChild(circle); g.appendChild(text);
     g.addEventListener('click', () => selectKey(key, g));
+    g.addEventListener('keydown', e => {
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); selectKey(key, g); }
+    });
     svg.appendChild(g);
 
     // inner ring: relative minor
