@@ -80,7 +80,10 @@ export default {
           <strong>F</strong>.</p>
           <p>Stack the treble clef above the bass clef and join them and you get the
           <strong>grand staff</strong>. The note that sits between them — on a short
-          <em>ledger line</em> — is <strong>middle C</strong>, the centre of the piano.</p>` },
+          <em>ledger line</em> — is <strong>middle C</strong>, the centre of the piano.</p>
+          <p>A <strong>ledger line</strong> is simply a short extra line for notes that fall above or
+          below the five-line staff — middle C rides one between the two staves, and you’ll meet them
+          again whenever a note climbs too high or dips too low for the staff itself.</p>` },
         { type: 'notation', caption: 'Bass-clef line notes: G B D F A.',
           abc: buildABC(
             [{ name: 'G', octave: 2 }, { name: 'B', octave: 2 }, { name: 'D', octave: 3 },
@@ -88,6 +91,8 @@ export default {
             { clef: 'bass', dur: '4', perLine: 5, lyrics: ['G', 'B', 'D', 'F', 'A'] }) },
         { type: 'callout', variant: 'tip', title: 'Bass memory hooks',
           html: 'Lines <strong>G B D F A</strong> — “<em>Good Boys Do Fine Always</em>”. Spaces <strong>A C E G</strong> — “<em>All Cows Eat Grass</em>”.' },
+        { type: 'notation', caption: 'Middle C — on a short ledger line just below the treble staff.',
+          abc: buildABC([{ name: 'C', octave: 4 }], { clef: 'treble', dur: '4' }) },
         { type: 'play', label: 'Hear middle C', notes: [{ name: 'C', octave: 4 }] },
       ],
       quiz: [
