@@ -74,6 +74,12 @@ export default {
         { type: 'notation', caption: 'A dotted half (3 beats) + a quarter fills a 4/4 bar.',
           clickToHear: false,
           abc: 'X:1\nM:4/4\nL:1/4\nK:C\nC3 D | z2 E2 |\n' },
+        { type: 'notation', caption: 'Rests mirror notes: a whole rest, two half rests, four quarter rests.',
+          clickToHear: false,
+          abc: 'X:1\nM:4/4\nL:1/4\nK:C\nz4 | z2 z2 | z z z z |\n' },
+        { type: 'notation', caption: 'A tie joins two same-pitch notes across the bar line into one sustained sound.',
+          clickToHear: false,
+          abc: 'X:1\nM:4/4\nL:1/4\nK:C\nC4- | C4 |\n' },
         { type: 'callout', variant: 'tip', title: 'Dot maths',
           html: 'A dot = “add half again.” Dotted quarter = 1 + ½ = 1½ beats. Dotted half = 2 + 1 = 3 beats.' },
       ],
@@ -86,6 +92,65 @@ export default {
         { q: 'What does a tie do?',
           choices: ['Adds a sharp', 'Makes it louder', 'Joins two same-pitch notes into one sound', 'Speeds it up'],
           answer: 2, explain: 'A tie combines the durations of two notes of the same pitch.' },
+      ],
+    },
+    {
+      id: 'rhy-subdivision',
+      title: 'Sixteenths, Triplets & Syncopation',
+      sections: [
+        { type: 'prose', html: `
+          <p>Keep halving and the eighth note splits into two <strong>sixteenth notes</strong> (two flags,
+          ¼ beat each) — four per quarter-note beat. Notes are <strong>beamed</strong> in beat-sized groups
+          so the pulse stays readable.</p>
+          <p>Not every division is in twos. A <strong>triplet</strong> squeezes <em>three</em> even notes
+          into the space of two — three eighths in one beat, marked with a small “3”.</p>
+          <p><strong>Syncopation</strong> accents the <em>off-beats</em> — the “&” between the numbers —
+          instead of the strong beats, giving music its push and groove.</p>` },
+        { type: 'notation', caption: 'One beat split finer: a quarter, two eighths, then four sixteenths.',
+          clickToHear: false,
+          abc: 'X:1\nM:4/4\nL:1/4\nK:C\nC C/2C/2 C/4C/4C/4C/4 C |\n' },
+        { type: 'notation', caption: 'Eighth-note triplets — three even notes per beat.',
+          clickToHear: false,
+          abc: 'X:1\nM:4/4\nL:1/4\nK:C\n(3C/2C/2C/2 (3C/2C/2C/2 C C |\n' },
+        { type: 'notation', caption: 'Syncopation — the inner notes land between the beats.',
+          clickToHear: false,
+          abc: 'X:1\nM:4/4\nL:1/4\nK:C\nC/2 C C C C/2 |\n' },
+      ],
+      quiz: [
+        { q: 'How many sixteenth notes fit in one quarter-note beat?',
+          choices: ['2', '3', '4', '6'], answer: 2, explain: 'Four sixteenths per quarter — each is ¼ of a beat.' },
+        { q: 'A triplet fits how many notes into the usual space of two?',
+          choices: ['Two', 'Three', 'Four', 'Six'], answer: 1, explain: 'Three even notes in the time of two.' },
+        { q: 'Syncopation places accents…',
+          choices: ['On the downbeats', 'Off the beat (the “&”s)', 'Only at the end', 'On the last bar'], answer: 1,
+          explain: 'Emphasis falls between the main beats — the source of groove.' },
+      ],
+    },
+    {
+      id: 'rhy-compound',
+      title: 'Compound Meter — 6/8',
+      sections: [
+        { type: 'prose', html: `
+          <p>So far each beat split into <em>two</em> (simple meter). In <strong>compound meter</strong> each
+          beat splits into <em>three</em>. The most common is <strong>6/8</strong>: six eighth notes per bar,
+          but felt as <strong>two</strong> beats of three — a lilting <em>ONE-two-three FOUR-five-six</em>.</p>
+          <p>The beat is a <strong>dotted quarter</strong> (three eighths). 6/8 powers jigs and ballads with a
+          swaying “in two” feel — quite different from 3/4’s three even beats.</p>` },
+        { type: 'notation', caption: '6/8 — six eighths grouped in two, then the two dotted-quarter beats.',
+          clickToHear: false,
+          abc: 'X:1\nM:6/8\nL:1/8\nK:C\nCCC CCC | C3 C3 |\n' },
+        { type: 'callout', variant: 'key', title: 'Simple vs compound',
+          html: 'Simple meter: each beat divides in two (4/4, 3/4). Compound meter: each beat divides in three (6/8, 9/8, 12/8). In 6/8 the beat is a dotted quarter.' },
+      ],
+      quiz: [
+        { q: 'In 6/8, the beat is usually felt as…',
+          choices: ['Six beats', 'Two beats of three', 'Three beats of two', 'One beat'], answer: 1,
+          explain: 'Six eighths group into two dotted-quarter beats.' },
+        { q: 'In compound meter, each beat divides into…',
+          choices: ['Two', 'Three', 'Four', 'Five'], answer: 1, explain: 'Compound = beats split in three (vs two for simple).' },
+        { q: 'The beat note in 6/8 is a…',
+          choices: ['Quarter note', 'Dotted quarter note', 'Half note', 'Eighth note'], answer: 1,
+          explain: 'Three eighths = one dotted quarter, the 6/8 pulse.' },
       ],
     },
   ],
