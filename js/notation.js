@@ -27,7 +27,7 @@ const BASE_PARAMS = {
 // Returns the abcjs tune object (or null).
 function renderNotation(el, abc, opts = {}) {
   const lib = abcjsLib();
-  if (!lib) { el.innerHTML = '<em style="color:var(--text-muted)">Notation unavailable</em>'; return null; }
+  if (!lib) { el.innerHTML = '<em style="color:var(--text-muted)">Notation couldn’t load — the music engine isn’t available. Try reloading the page.</em>'; return null; }
 
   const params = { ...BASE_PARAMS, ...opts.params };
 

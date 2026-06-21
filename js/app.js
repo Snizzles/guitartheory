@@ -9,6 +9,7 @@ import { renderNotation } from './notation.js';
 import { playNote, playSequence, playChord, playInterval, primeAudio } from './audio.js';
 import { renderQuiz } from './quiz.js';
 import { DECKS, getDeck } from './flashcards.js';
+import { GLOSSARY } from './glossary.js';
 import {
   NOTE_CHOICES, SCALE_NAMES, CHORD_TYPES,
   getScaleNotes, getChordNotes, getInterval, noteAtInterval, INTERVAL_CATALOG,
@@ -39,6 +40,7 @@ function currentRoute() {
   const h = location.hash.replace(/^#\/?/, '');
   if (h.startsWith('lesson/')) return { view: 'lesson', id: h.slice('lesson/'.length) };
   if (h.startsWith('practice/')) return { view: 'practice', id: h.slice('practice/'.length) };
+  if (h === 'glossary') return { view: 'glossary' };
   return { view: 'home' };
 }
 function go(hash) { location.hash = hash; }
@@ -52,6 +54,10 @@ function renderSidebar() {
   const home = el('button', 'side-home' + (route.view === 'home' ? ' active' : ''), '🏠 Course Home');
   home.addEventListener('click', () => go('#/home'));
   nav.appendChild(home);
+
+  const gloss = el('button', 'side-home' + (route.view === 'glossary' ? ' active' : ''), '📖 Glossary');
+  gloss.addEventListener('click', () => go('#/glossary'));
+  nav.appendChild(gloss);
 
   // Practice / memorization decks
   const pracWrap = el('div', 'side-module');
@@ -159,6 +165,25 @@ function renderHome() {
   $('#content-scroll').scrollTop = 0;
 }
 
+// ─── Glossary view ──────────────────────────────────────────────────────────
+function renderGlossary() {
+  const main = $('#content');
+  main.innerHTML = '';
+  const header = el('div', 'lesson-header');
+  header.appendChild(el('div', 'lesson-eyebrow', 'Reference'));
+  header.appendChild(el('h1', 'lesson-title', 'Glossary'));
+  header.appendChild(el('p', 'hero-sub', 'Plain-language definitions of the terms used across the course.'));
+  main.appendChild(header);
+
+  const list = el('dl', 'glossary');
+  GLOSSARY.forEach(({ term, def }) => {
+    list.appendChild(el('dt', 'gloss-term', term));
+    list.appendChild(el('dd', 'gloss-def', def));
+  });
+  main.appendChild(list);
+  $('#content-scroll').scrollTop = 0;
+}
+
 // ─── Lesson view ────────────────────────────────────────────────────────────
 function renderLesson(id) {
   const lesson = getLesson(id);
@@ -171,6 +196,10 @@ function renderLesson(id) {
   const header = el('div', 'lesson-header');
   header.appendChild(el('div', 'lesson-eyebrow', `${lesson.moduleIndex + 1}. ${lesson.moduleTitle}`));
   header.appendChild(el('h1', 'lesson-title', lesson.title));
+  const modProg = progress.modulePercent(moduleLessonIds(lesson.moduleId));
+  const progLine = el('div', 'lesson-modprog',
+    `Module ${lesson.moduleIndex + 1} · ${modProg.done} of ${modProg.total} lessons complete`);
+  header.appendChild(progLine);
   main.appendChild(header);
 
   lesson.sections.forEach(sec => main.appendChild(renderSection(sec)));
@@ -182,11 +211,15 @@ function renderLesson(id) {
   quizWrap.appendChild(quizMount);
   main.appendChild(quizWrap);
 
+  // Encouragement banner — filled when a module (or the whole course) is completed on a pass.
+  const celebrate = el('div');
+  main.appendChild(celebrate);
+
   // Footer nav
   const footer = el('div', 'lesson-nav');
   const prev = prevLesson(id);
   const next = nextLesson(id);
-  const prevBtn = el('button', 'btn-secondary', prev ? '← Previous' : '← Home');
+  const prevBtn = el('button', 'btn-secondary', prev ? '← Previous' : '← Course Home');
   prevBtn.addEventListener('click', () => go(prev ? '#/lesson/' + prev.id : '#/home'));
   footer.appendChild(prevBtn);
 
@@ -201,6 +234,20 @@ function renderLesson(id) {
   renderQuiz(quizMount, lesson.quiz, () => {
     progress.markComplete(id);
     renderSidebar();
+    const mp = progress.modulePercent(moduleLessonIds(lesson.moduleId));
+    progLine.textContent = `Module ${lesson.moduleIndex + 1} · ${mp.done} of ${mp.total} lessons complete`;
+    if (!next) {
+      celebrate.className = 'callout key';
+      celebrate.innerHTML = '<div class="callout-title">🎉 You finished the course!</div>' +
+        '<div class="callout-body">You now know how pitch, rhythm, intervals, scales, keys, modes and ' +
+        'chords fit together. Revisit any lesson from the sidebar anytime, and keep your ears active by playing along.</div>';
+      celebrate.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    } else if (mp.done === mp.total) {
+      celebrate.className = 'callout key';
+      celebrate.innerHTML = '<div class="callout-title">🎉 Module complete!</div>' +
+        `<div class="callout-body">You've finished <strong>${lesson.moduleTitle}</strong> — on to the next.</div>`;
+      celebrate.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
   });
   $('#content-scroll').scrollTop = 0;
 }
@@ -509,6 +556,7 @@ function render() {
   renderSidebar();
   if (route.view === 'lesson') renderLesson(route.id);
   else if (route.view === 'practice') renderPractice(route.id);
+  else if (route.view === 'glossary') renderGlossary();
   else renderHome();
   // close mobile sidebar on navigation
   document.body.classList.remove('sidebar-open');
@@ -582,8 +630,10 @@ function renderCard(mount, card, onNext, count) {
 
   if (card.play) {
     const pb = el('button', 'play-btn', '▶ Hear it');
-    pb.addEventListener('click', () =>
-      card.play.chord ? playChord(card.play.notes) : playSequence(card.play.notes, 0.45));
+    pb.addEventListener('click', () => {
+      if (card.play.chord) playChord(card.play.notes); else playSequence(card.play.notes, 0.45);
+      pb.blur();
+    });
     c.appendChild(pb);
   }
 
@@ -605,8 +655,8 @@ function renderCard(mount, card, onNext, count) {
     // before abcjs renders (mobile Safari renders a blank SVG otherwise).
     if (card.a.abc) mountNotation(aArea.querySelector('.notation-mount'), card.a.abc, { clickToHear: true });
   }
-  reveal.addEventListener('click', doReveal);
-  next.addEventListener('click', onNext);
+  reveal.addEventListener('click', () => { doReveal(); reveal.blur(); });
+  next.addEventListener('click', () => { next.blur(); onNext(); });
   ctr.appendChild(reveal);
   ctr.appendChild(next);
   c.appendChild(ctr);

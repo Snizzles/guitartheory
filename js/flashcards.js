@@ -113,7 +113,7 @@ const DECKS = [
       const { root, type, notes } = chordCardCommon(levelId);
       return {
         prompt: 'Name this chord',
-        q: { abc: buildABC([{ chord: notes }], { clef: 'treble', dur: '2' }), html: notes.map(chip).join(' ') },
+        q: { abc: buildABC([{ chord: notes }], { clef: 'treble', dur: '2' }) },
         a: { html: big(fmt(chordSymbol(root, type))) + sub(fmt(chordFullName(root, type))) },
         play: { notes, chord: true }
       };

@@ -515,3 +515,9 @@ header {
 .cof-key:focus { outline: none; }
 .cof-key:focus-visible circle { stroke: var(--accent); stroke-width: 3; }
 .piano-out { text-align: center; font-size: 0.85rem; color: var(--text-muted); min-height: 1.2em; margin-top: 0.45rem; }
+
+/* ── Glossary + per-module progress ──────────────────────────────────────────── */
+.glossary { margin-top: 0.5rem; }
+.gloss-term { font-weight: 600; color: var(--accent); margin-top: 1rem; }
+.gloss-def { color: var(--text-muted); font-size: 0.92rem; margin: 0.15rem 0 0; }
+.lesson-modprog { font-size: 0.78rem; color: var(--text-muted); margin: 0.1rem 0 1rem; }

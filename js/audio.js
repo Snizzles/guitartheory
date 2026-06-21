@@ -6,8 +6,14 @@
 import { pitchClass, parseNote } from './theory.js';
 
 let ctx = null;
+let audioUnavailable = false;
 function audioCtx() {
-  if (!ctx) ctx = new (window.AudioContext || window.webkitAudioContext)();
+  if (audioUnavailable) return null;          // browser has no Web Audio — degrade quietly
+  if (!ctx) {
+    const AC = window.AudioContext || window.webkitAudioContext;
+    if (!AC) { audioUnavailable = true; return null; }
+    try { ctx = new AC(); } catch { audioUnavailable = true; return null; }
+  }
   if (ctx.state === 'suspended') ctx.resume();
   return ctx;
 }
@@ -25,6 +31,7 @@ function freqOf(name, octave = 4) {
 // Play a single frequency at time `t` for `dur` seconds.
 function playFreq(freq, t, dur, gainPeak = 0.22) {
   const ac = audioCtx();
+  if (!ac) return;
   const osc = ac.createOscillator();
   const gain = ac.createGain();
   // Two stacked oscillators (sine + soft triangle) for a warmer tone
@@ -61,12 +68,15 @@ function playFreq(freq, t, dur, gainPeak = 0.22) {
 
 // Play one note immediately (e.g. on a click).
 function playNote(name, octave = 4, dur = 0.6) {
-  playFreq(freqOf(name, octave), audioCtx().currentTime, dur);
+  const ac = audioCtx();
+  if (!ac) return;
+  playFreq(freqOf(name, octave), ac.currentTime, dur);
 }
 
 // Play a melodic sequence. notes: [{name,octave}] or ["C","D"...]; noteDur seconds each.
 function playSequence(notes, noteDur = 0.5, gap = 0.0) {
   const ac = audioCtx();
+  if (!ac) return 0;
   let t = ac.currentTime + 0.05;
   for (const n of notes) {
     const name = typeof n === 'string' ? n : n.name;
@@ -80,6 +90,7 @@ function playSequence(notes, noteDur = 0.5, gap = 0.0) {
 // Play notes together as a chord. notes: [{name,octave}] or ["C","E","G"].
 function playChord(notes, dur = 1.1) {
   const ac = audioCtx();
+  if (!ac) return;
   const t = ac.currentTime + 0.05;
   for (const n of notes) {
     const name = typeof n === 'string' ? n : n.name;
@@ -91,6 +102,7 @@ function playChord(notes, dur = 1.1) {
 // Play raw MIDI note numbers together (used by clickable abcjs notation).
 function playMidi(midiNumbers, dur = 0.7) {
   const ac = audioCtx();
+  if (!ac) return;
   const t = ac.currentTime + 0.02;
   const list = Array.isArray(midiNumbers) ? midiNumbers : [midiNumbers];
   for (const m of list) {

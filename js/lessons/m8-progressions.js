@@ -83,8 +83,6 @@ export default {
             getChordNotes('A', 'Minor'), getChordNotes('F', 'Major')] },
         { type: 'play', label: 'ii–V–I in C (Dm7 – G7 – Cmaj7)', chordSeq: [
             getChordNotes('D', 'Min7'), getChordNotes('G', 'Dom7'), getChordNotes('C', 'Maj7')] },
-        { type: 'callout', variant: 'key', title: 'You finished the course! 🎉',
-          html: 'You now know how pitch, rhythm, intervals, scales, keys, modes and chords fit together. Revisit any lesson from the sidebar, and keep your ears active by playing along.' },
       ],
       quiz: [
         { q: 'The “four-chord pop song” progression is…',
