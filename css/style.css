@@ -498,3 +498,13 @@ header {
   #content { padding: 1.25rem 1rem 2rem; }
   .hero h1 { font-size: 1.7rem; }
 }
+
+/* Quiz: wrong-answer review link + end-of-quiz recap of missed questions */
+.quiz-review-link { display: inline-block; margin: 0.3rem 0 0; font-size: 0.85rem; }
+.quiz-result-actions { display: flex; gap: 0.6rem; justify-content: center; flex-wrap: wrap; }
+.quiz-recap { text-align: left; margin: 0.5rem 0 1rem; padding: 0.75rem 0.9rem;
+  background: rgba(0,0,0,0.2); border-radius: 8px; }
+.quiz-recap-title { font-size: 0.78rem; text-transform: uppercase; letter-spacing: .05em;
+  color: var(--text-muted); margin-bottom: 0.5rem; }
+.quiz-recap-item { font-size: 0.9rem; margin: 0.5rem 0; }
+.quiz-recap-ans { display: block; color: var(--correct); font-size: 0.85rem; margin-top: 0.15rem; }
