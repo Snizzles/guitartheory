@@ -22,7 +22,7 @@ export default {
           notes: octaveScale(getScaleNotes('C', 'Major')) },
         { type: 'callout', variant: 'key', title: 'Scale degrees',
           html: 'Each note has a number (1–7) and a name: 1 = tonic, 4 = subdominant, 5 = dominant, 7 = leading tone. Degree 1 is “home.”' },
-        { type: 'interactive', widget: 'scaleLab', config: { root: 'G', scale: 'Major' },
+        { type: 'interactive', widget: 'scaleLab', config: { root: 'C', scale: 'Major' },
           caption: 'Build the major scale from any root — the W-W-H-W-W-W-H pattern always holds.' },
       ],
       quiz: [

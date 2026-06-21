@@ -6,7 +6,7 @@
 
 import {
   buildABC, scaleToABC, getChordNotes, getScaleNotes, getInterval, noteAtInterval, INTERVAL_CATALOG, octaveScale,
-  keySignature, relativeMinor, chordSymbol, chordFullName, pitchClass,
+  keySignature, relativeMinor, chordSymbol, chordFullName, identifyChord, pitchClass,
   CHROMATIC_SHARP, CHROMATIC_FLAT, CIRCLE_OF_FIFTHS
 } from './theory.js';
 
@@ -53,6 +53,26 @@ function chordCardCommon(levelId) {
   const cfg = lvl(CHORD_LEVELS, levelId);
   const root = pick(cfg.roots), type = pick(cfg.types);
   return { root, type, notes: getChordNotes(root, type) };
+}
+
+// Voice a root-position chord in a given inversion, octave-aware, for the staff.
+function voiceChord(notes, inv, base = 4) {
+  return notes.map((_, i) => {
+    const idx = (inv + i) % notes.length;
+    return { name: notes[idx], octave: base + (inv + i >= notes.length ? 1 : 0) };
+  });
+}
+const INV_NAMES = ['root position', '1st inversion', '2nd inversion', '3rd inversion'];
+
+// Other equally-valid names for a (possibly symmetric) chord — e.g. a diminished
+// 7th can be named from any of its four notes. Excludes the name we already show.
+function altNames(notes, root, type) {
+  const rpc = pitchClass(root), seen = new Set();
+  return identifyChord(notes).filter(r => {
+    if (pitchClass(r.root) === rpc && r.type === type) return false;
+    if (seen.has(r.symbol)) return false;
+    seen.add(r.symbol); return true;
+  });
 }
 
 const DECKS = [
@@ -111,11 +131,18 @@ const DECKS = [
     levels: CHORD_LEVEL_LIST,
     generate(levelId = 'basic') {
       const { root, type, notes } = chordCardCommon(levelId);
+      // Basic stays root-position; higher levels may show the chord inverted.
+      const inv = levelId === 'basic' ? 0 : Math.floor(Math.random() * notes.length);
+      const voiced = voiceChord(notes, inv);
+      const alts = altNames(notes, root, type);
+      const altLine = alts.length ? sub('Also valid: ' + alts.map(r => fmt(r.symbol)).join(', ')) : '';
       return {
-        prompt: 'Name this chord',
-        q: { abc: buildABC([{ chord: notes }], { clef: 'treble', dur: '2' }) },
-        a: { html: big(fmt(chordSymbol(root, type))) + sub(fmt(chordFullName(root, type))) },
-        play: { notes, chord: true }
+        prompt: 'Name this chord' + (inv ? ' (it may be inverted)' : ''),
+        q: { abc: buildABC([{ chord: voiced }], { clef: 'treble', dur: '2' }) },
+        a: { html: big(fmt(chordSymbol(root, type))) +
+                   sub(fmt(chordFullName(root, type)) + ' · ' + (INV_NAMES[inv] || `inversion ${inv}`)) +
+                   altLine },
+        play: { notes: voiced, chord: true }
       };
     }
   },
