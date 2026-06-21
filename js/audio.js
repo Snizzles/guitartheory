@@ -105,4 +105,7 @@ function playInterval(a, b, octA = 4, octB = 4) {
   setTimeout(() => playChord([{ name: a, octave: octA }, { name: b, octave: octB }], 1.0), 1100);
 }
 
-export { playNote, playSequence, playChord, playInterval, playMidi, freqOf, midiOf };
+// Create/resume the AudioContext from a user gesture so the first real play isn't silent.
+function primeAudio() { try { audioCtx(); } catch {} }
+
+export { playNote, playSequence, playChord, playInterval, playMidi, freqOf, midiOf, primeAudio };
