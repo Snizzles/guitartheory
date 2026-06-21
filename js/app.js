@@ -6,7 +6,7 @@ import {
   MODULES, LESSONS, getLesson, nextLesson, prevLesson, moduleLessonIds, allLessonIds
 } from './lessons/index.js';
 import { renderNotation } from './notation.js';
-import { playNote, playSequence, playChord, playInterval } from './audio.js';
+import { playNote, playSequence, playChord, playInterval, primeAudio } from './audio.js';
 import { renderQuiz } from './quiz.js';
 import { DECKS, getDeck } from './flashcards.js';
 import {
@@ -101,6 +101,12 @@ function renderHome() {
   hero.appendChild(el('h1', null, 'Music Theory'));
   hero.appendChild(el('p', 'hero-sub',
     'A structured, hands-on course — from reading the staff to building chords and progressions. Every concept is shown in notation you can hear and explore.'));
+
+  const soundTip = el('div', 'callout tip');
+  soundTip.innerHTML = '<div class="callout-title">🔊 Built around sound</div>' +
+    '<div class="callout-body">Turn your volume on — click any note in the staff, or a ▶ button, to hear it. ' +
+    'Explore the mini-piano, interval lab and other tools as you go.</div>';
+  hero.appendChild(soundTip);
 
   const bar = el('div', 'home-progress');
   bar.appendChild(el('div', 'progress-track', `<div class="progress-fill" style="width:${pct}%"></div>`));
@@ -315,7 +321,9 @@ function intervalLab(mount, { root = 'C' } = {}) {
     if (!silent) playInterval(r, topName, 4, topOct);
   }
   intervals.forEach(iv => {
-    const b = el('button', 'lab-chip', iv.short);
+    const b = el('button', 'lab-chip', iv.name);   // plain name, not just the "m2"/"TT" code
+    b.title = iv.short;
+    b.setAttribute('aria-label', `${iv.name} (${iv.short})`);
     b.addEventListener('click', () => { setActive(btns, b); show(iv); });
     btns.appendChild(b);
   });
@@ -592,6 +600,8 @@ function init() {
   window.addEventListener('hashchange', render);
   $('#menu-toggle').addEventListener('click', () => document.body.classList.toggle('sidebar-open'));
   $('#sidebar-backdrop').addEventListener('click', () => document.body.classList.remove('sidebar-open'));
+  // Prime the Web Audio context on the first user gesture so the first note/▶ isn't silent.
+  ['pointerdown', 'keydown'].forEach(ev => window.addEventListener(ev, primeAudio, { once: true }));
   if (!location.hash) location.hash = '#/home';
   render();
 }
