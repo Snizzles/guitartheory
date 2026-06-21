@@ -46,7 +46,8 @@ export default {
           <p>The surest way to pin down an interval's <em>quality</em> is to <strong>count its half
           steps</strong> from the lower note. For example, <strong>C–E</strong> spans 4 half steps —
           which the table below calls a <strong>major 3rd</strong>. Count first, then check the table.
-          Here is every interval inside one octave — worth coming back to:</p>
+          Here is every interval inside one octave — open it whenever you need a reference:</p>
+          <details class="reftable"><summary>Show / hide the full interval table</summary>
           <table class="theory-table">
             <thead><tr><th>Interval</th><th>Short</th><th>Half steps</th><th>From C</th></tr></thead>
             <tbody>
@@ -65,7 +66,7 @@ export default {
               <tr><td>Major 7th</td><td>M7</td><td>11</td><td>C–B</td></tr>
               <tr><td>Perfect octave</td><td>P8</td><td>12</td><td>C–C</td></tr>
             </tbody>
-          </table>` },
+          </table></details>` },
         { type: 'callout', variant: 'key', title: 'Worth memorizing',
           html: 'The perfect intervals by half step: <strong>unison = 0, 4th = 5, 5th = 7, octave = 12</strong>. The <strong>perfect 5th = 7 half steps</strong> (C up to G) turns up everywhere — lock that one in.' },
         { type: 'play', label: 'Major 3rd — bright (C–E)', seq: true, notes: ['C', 'E'] },

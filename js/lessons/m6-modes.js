@@ -34,6 +34,39 @@ export default {
       ],
     },
     {
+      id: 'mode-depth',
+      title: 'A Mode Up Close: D Dorian',
+      sections: [
+        { type: 'prose', html: `
+          <p>Let’s build one mode slowly. Take the white keys of C major but make <strong>D</strong> home:
+          <strong>D E F G A B C D</strong>. That’s <strong>D Dorian</strong> — a minor-sounding scale (it
+          has a ♭3, F), but with one bright surprise.</p>
+          <p>That surprise is a <strong>natural 6th</strong> (B). It’s Dorian’s <strong>characteristic
+          note</strong> — the single degree that sets a mode apart from the plain scale it resembles. Plain
+          natural minor has a ♭6; Dorian’s natural 6 is why it sounds like a “hopeful” minor.</p>
+          <p>Hear it right after its parent, C major (Ionian) — <em>same keys, different home, different
+          mood</em> — then build your own below:</p>` },
+        { type: 'play', label: 'C Ionian (major) — C D E F G A B C', seq: true,
+          notes: octaveScale(getScaleNotes('C', 'Ionian')) },
+        { type: 'play', label: 'D Dorian — same white keys, home on D', seq: true,
+          notes: octaveScale(getScaleNotes('D', 'Dorian')) },
+        { type: 'interactive', widget: 'scaleLab', config: { root: 'D', scale: 'Dorian' },
+          caption: 'Build any mode yourself — change the root and scale, and listen for the characteristic note.' },
+      ],
+      quiz: [
+        { q: 'D Dorian uses the notes of which major scale?',
+          choices: ['D major', 'C major', 'G major', 'F major'], answer: 1,
+          explain: 'The white keys C–C started on D — so it shares C major’s notes.' },
+        { q: 'Dorian’s characteristic note (vs natural minor) is its…',
+          choices: ['♭2', 'natural 6th', '♯4', '♭7'], answer: 1,
+          explain: 'A natural 6 (not the ♭6 of natural minor) gives Dorian its brighter colour.' },
+        { q: 'A “characteristic note” is…',
+          choices: ['The loudest note', 'The one altered degree that gives a mode its flavour',
+                    'The first note', 'The highest note'], answer: 1,
+          explain: 'It’s the degree that distinguishes a mode from the plain major or minor scale.' },
+      ],
+    },
+    {
       id: 'mode-bright-dark',
       title: 'Bright vs Dark Modes',
       sections: [
