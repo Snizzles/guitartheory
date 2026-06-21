@@ -49,10 +49,15 @@ export default {
           and leading tone) resolves home to the tonic.</p>
           <p>Make the V a <strong>dominant 7</strong> (G7 → C) and the pull is even stronger. Other
           cadences: <strong>IV → I</strong> (plagal, the “amen”), and <strong>V → vi</strong> (deceptive,
-          a surprise).</p>` },
+          a surprise).</p>
+          <p>A phrase can also <em>end on the V</em> — e.g. <strong>I → V</strong>, a <strong>half
+          cadence</strong> — which sounds unfinished, like a comma. An authentic V → I is called
+          <strong>perfect (PAC)</strong> when both chords are root-position and the tonic is on top, and
+          <strong>imperfect (IAC)</strong> otherwise — a gentler landing.</p>` },
         { type: 'play', label: 'Authentic cadence: G7 → C', chordSeq: [getChordNotes('G', 'Dom7'), getChordNotes('C', 'Major')] },
         { type: 'play', label: 'Plagal “amen”: F → C', chordSeq: [getChordNotes('F', 'Major'), getChordNotes('C', 'Major')] },
         { type: 'play', label: 'Deceptive: G7 → Am (a surprise)', chordSeq: [getChordNotes('G', 'Dom7'), getChordNotes('A', 'Minor')] },
+        { type: 'play', label: 'Half cadence: C → G7 (sounds unfinished)', chordSeq: [getChordNotes('C', 'Major'), getChordNotes('G', 'Dom7')] },
       ],
       quiz: [
         { q: 'A cadence functions like…',
@@ -62,6 +67,41 @@ export default {
           choices: ['IV → I', 'V → vi', 'V → I', 'ii → iii'], answer: 2, explain: 'The authentic cadence V → I resolves home.' },
         { q: 'IV → I is known as the ___ cadence.',
           choices: ['Authentic', 'Plagal (“amen”)', 'Deceptive', 'Half'], answer: 1, explain: 'The plagal or “amen” cadence.' },
+        { q: 'A phrase that ends on the V chord (e.g. I → V) is a…',
+          choices: ['Plagal cadence', 'Half cadence', 'Authentic cadence', 'Deceptive cadence'], answer: 1,
+          explain: 'Ending on V sounds unfinished — a half cadence.' },
+      ],
+    },
+    {
+      id: 'pro-secondary',
+      title: 'Secondary Dominants',
+      sections: [
+        { type: 'prose', html: `
+          <p>Any chord can be briefly treated as a temporary “home” by borrowing <em>its</em> dominant —
+          the dominant-7th chord a 5th above it. These are <strong>secondary dominants</strong>, written
+          <strong>V/x</strong> (“five of x”).</p>
+          <p>The most common is <strong>V/V</strong>, the dominant of the dominant. In C major that’s
+          <strong>D7</strong> (D F♯ A C); its F♯ is a leading tone into G, pulling hard into the real V
+          (G7), then home to C.</p>` },
+        { type: 'play', label: 'V/V → V → I in C: D7 – G7 – C', chordSeq: [
+            getChordNotes('D', 'Dom7'), getChordNotes('G', 'Dom7'), getChordNotes('C', 'Major')] },
+        { type: 'play', label: 'V/vi → vi in C: E7 – Am', chordSeq: [
+            getChordNotes('E', 'Dom7'), getChordNotes('A', 'Minor')] },
+        { type: 'play', label: 'V/ii → ii in C: A7 – Dm', chordSeq: [
+            getChordNotes('A', 'Dom7'), getChordNotes('D', 'Minor')] },
+      ],
+      quiz: [
+        { q: 'A secondary dominant is…',
+          choices: ['The second chord of a song', 'A chord borrowed as the dominant of a non-tonic chord',
+                    'Any minor chord', 'The relative minor'], answer: 1,
+          explain: 'It’s the V (usually V7) of a chord other than the tonic — written V/x.' },
+        { q: 'In C major, the secondary dominant V/V is…',
+          choices: ['G7', 'D7', 'F7', 'C7'], answer: 1,
+          explain: 'The dominant of G (the V) is D7 — its F♯ leads up to G.' },
+        { q: 'What makes a secondary dominant pull so strongly to its target?',
+          choices: ['It is louder', 'Its dominant-7th adds a leading tone into the target chord',
+                    'It removes the 5th', 'It is always minor'], answer: 1,
+          explain: 'The dominant 7th introduces a leading tone a half step below the target’s root.' },
       ],
     },
     {
