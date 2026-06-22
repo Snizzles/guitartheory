@@ -14,13 +14,15 @@ function abcjsLib() {
 }
 
 const BASE_PARAMS = {
-  responsive: 'resize',
   add_classes: true,
+  // Render at a fixed, legible size rather than shrinking a single note to fit a wide
+  // container (abcjs 'responsive' did the latter). Wide examples scroll via overflow-x.
+  scale: 1.5,
   paddingtop: 6,
   paddingbottom: 6,
   paddingleft: 0,
   paddingright: 0,
-  staffwidth: 540
+  staffwidth: 360
 };
 
 // Render an ABC string into `el`. If `clickToHear`, clicking a note plays it.

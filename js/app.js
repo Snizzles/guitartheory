@@ -106,7 +106,7 @@ function renderHome() {
   const hero = el('div', 'hero');
   hero.appendChild(el('h1', null, 'Music Theory'));
   hero.appendChild(el('p', 'hero-sub',
-    'A structured, hands-on course in general music theory (not guitar-specific) — from reading the staff to building chords and progressions. Every concept is shown in notation you can hear and explore.'));
+    'A structured, hands-on course — from reading the staff to building chords and progressions. Every concept is shown in notation you can hear and explore.'));
 
   const soundTip = el('div', 'callout tip');
   soundTip.innerHTML = '<div class="callout-title">🔊 Built around sound</div>' +
