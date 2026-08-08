@@ -263,9 +263,13 @@ header {
   border-radius: 8px;
   padding: 0.6rem 0.8rem;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
-  overflow-x: auto;
+  /* The SVG scales to fill this width, so cap it — on a wide desktop the staff would
+     otherwise stretch to ~700px and render comically large. */
+  max-width: 420px;
+  margin-left: auto;
+  margin-right: auto;
 }
-.notation-mount svg { display: block; }
+.notation-mount svg { display: block; width: 100%; height: auto; }
 /* Lesson notation: drop the redundant dark card frame so it's one clean paper
    card, not a white box inside a dark box (keeps card-block's bottom margin). */
 .sec-notation { background: none; border: none; box-shadow: none; padding: 0; }

@@ -15,14 +15,19 @@ function abcjsLib() {
 
 const BASE_PARAMS = {
   add_classes: true,
-  // Render at a fixed, legible size rather than shrinking a single note to fit a wide
-  // container (abcjs 'responsive' did the latter). Wide examples scroll via overflow-x.
-  scale: 1.5,
+  // 'resize' makes abcjs emit a viewBox and size the SVG fluidly, so the element's
+  // layout box always matches the painted music (never clipped). Do NOT use the
+  // `scale` option here: it paints through a transform, which layout ignores, so the
+  // container sizes to the *unscaled* height and cuts off the bottom of the staff.
+  responsive: 'resize',
+  // Legibility is set by staffwidth instead: the music is laid out in this many
+  // virtual units and then stretched to the container, so a *smaller* staffwidth
+  // renders *larger* notes. 300 is ~1.8x the glyph size of the old 540.
+  staffwidth: 300,
   paddingtop: 6,
   paddingbottom: 6,
   paddingleft: 0,
-  paddingright: 0,
-  staffwidth: 360
+  paddingright: 0
 };
 
 // Render an ABC string into `el`. If `clickToHear`, clicking a note plays it.
