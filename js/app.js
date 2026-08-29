@@ -13,6 +13,7 @@ import { GLOSSARY } from './glossary.js';
 import {
   NOTE_CHOICES, SCALE_NAMES, CHORD_TYPES,
   getScaleNotes, getChordNotes, getInterval, noteAtInterval, INTERVAL_CATALOG,
+  SCALE_INFO, scaleFormula, scaleStepPattern,
   keySignature, relativeMinor, chordSymbol, chordFullName, buildABC, scaleToABC, octaveScale
 } from './theory.js';
 import * as progress from './progress.js';
@@ -416,6 +417,8 @@ function scaleLab(mount, { root = 'C', scale = 'Major' } = {}) {
 
   const out = el('div', 'lab-out');
   mount.appendChild(out);
+  const info = el('div', 'scale-info');
+  mount.appendChild(info);
   const mount2 = el('div', 'notation-mount');
   mount.appendChild(mount2);
   const playBtn = el('button', 'play-btn', '▶ Play scale');
@@ -428,8 +431,15 @@ function scaleLab(mount, { root = 'C', scale = 'Major' } = {}) {
       const notes = getScaleNotes(r, s);
       currentNotes = notes;
       out.innerHTML = notes.map(n => `<span class="note-chip">${fmtAcc(n)}</span>`).join('');
+      // Describe whichever scale is selected — formula, step pattern and character —
+      // so the explanation never lags behind the dropdown.
+      info.innerHTML =
+        `<div class="si-row"><span class="si-k">Formula</span><span class="si-v">${scaleFormula(s)}</span></div>` +
+        `<div class="si-row"><span class="si-k">Steps</span><span class="si-v">${scaleStepPattern(s)}</span></div>` +
+        `<div class="si-row"><span class="si-k">Notes</span><span class="si-v">${notes.length}${notes.length === 12 ? '' : ' + the octave'}</span></div>` +
+        (SCALE_INFO[s] ? `<p class="si-blurb">${SCALE_INFO[s]}</p>` : '');
       mountNotation(mount2, scaleToABC(r, s), { clickToHear: true });
-    } catch (e) { out.textContent = 'n/a'; }
+    } catch (e) { out.textContent = 'n/a'; info.innerHTML = ''; }
   }
   playBtn.addEventListener('click', () => {
     playSequence(octaveScale(currentNotes), 0.4);
