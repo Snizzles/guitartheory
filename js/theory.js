@@ -237,6 +237,54 @@ function getModeNotes(majorRoot, degree) {
   return getScaleNotes(modeRoot, MODE_ORDER[degree - 1]);
 }
 
+// ─── Scale descriptions & derived formulas ──────────────────────────────────
+
+// One-line character notes, so an explorer can explain whichever scale is picked.
+const SCALE_INFO = {
+  'Major':            'The reference scale — bright and resolved. Its pattern defines every major key.',
+  'Natural Minor':    'The plain minor scale — darker and more wistful; the relative minor of a major key.',
+  'Harmonic Minor':   'Natural minor with the 7th raised, creating a leading tone and an exotic step between 6 and 7.',
+  'Melodic Minor':    'Minor with a raised 6th and 7th ascending, so the top of the scale climbs smoothly to the tonic.',
+  'Pentatonic Major': 'The major scale minus its 4th and 7th — five notes, no half steps, so nothing can clash.',
+  'Pentatonic Minor': 'Five notes; the backbone of rock and blues soloing.',
+  'Blues':            'Minor pentatonic plus the chromatic ♭5 “blue note” — gritty and vocal.',
+  'Chromatic':        'Every pitch in the octave, each a half step apart — no home key of its own.',
+  'Ionian':           'The major scale under its modal name — the reference the other modes are heard against.',
+  'Dorian':           'Minor with a natural 6th — a brighter, hopeful minor. Common in funk and jazz.',
+  'Phrygian':         'Minor with a ♭2 — dark and tense, with a flamenco colour.',
+  'Lydian':           'Major with a ♯4 — dreamy and floating.',
+  'Mixolydian':       'Major with a ♭7 — bluesy and dominant-sounding.',
+  'Aeolian':          'The natural minor scale under its modal name.',
+  'Locrian':          'Minor with both ♭2 and ♭5; its tonic triad is diminished, so it rarely works as a home.'
+};
+
+const ACC_LABEL = { 0: '', 1: '♯', 2: '♯♯', '-1': '♭', '-2': '♭♭' };
+
+// Scale-degree formula ("1 2 ♭3 4 5 ♭6 ♭7"), derived from the scale's own semitones
+// so it always matches SCALES. Each tone is compared with the major-scale size for
+// the degree it occupies, so alterations come out as ♭/♯ against that reference.
+function scaleFormula(scaleName) {
+  const steps = SCALES[scaleName];
+  if (!steps) throw new Error(`Unknown scale: ${scaleName}`);
+  if (steps.length === 12) return 'every half step';
+  const degs = SCALE_DEGREES[scaleName];
+  return steps.map((semi, i) => {
+    const degree = (degs ? degs[i] : i) + 1;
+    const alt = semi - NUMBER_REF[degree];
+    return (ACC_LABEL[alt] ?? (alt > 0 ? '+' + alt : String(alt))) + degree;
+  }).join(' ');
+}
+
+// Whole/half step pattern ("W W H W W W H"). A 3-semitone gap (harmonic minor's
+// 6→7, or a pentatonic skip) shows as W+H.
+function scaleStepPattern(scaleName) {
+  const steps = SCALES[scaleName];
+  if (!steps) throw new Error(`Unknown scale: ${scaleName}`);
+  if (steps.length === 12) return 'H '.repeat(12).trim();
+  const gaps = steps.map((s, i) => (i + 1 < steps.length ? steps[i + 1] : 12) - s);
+  return gaps.map(g => g === 1 ? 'H' : g === 2 ? 'W' : g === 3 ? 'W+H' : `${g}H`).join(' ');
+}
+
 // ─── Keys & the circle of fifths ────────────────────────────────────────────
 
 const SHARP_ORDER = ['F', 'C', 'G', 'D', 'A', 'E', 'B'];
@@ -531,7 +579,7 @@ const CHORD_TYPES = Object.keys(CHORD_FORMULAS);
 
 export {
   CHROMATIC_SHARP, CHROMATIC_FLAT, LETTERS, ENHARMONIC,
-  SCALES, MODE_ORDER, MODE_CHARACTER, CHORD_FORMULAS, CHORD_SUFFIX,
+  SCALES, MODE_ORDER, MODE_CHARACTER, SCALE_INFO, scaleFormula, scaleStepPattern, CHORD_FORMULAS, CHORD_SUFFIX,
   INTERVAL_CATALOG, CIRCLE_OF_FIFTHS, SHARP_ORDER, FLAT_ORDER,
   ROMAN_MAJOR, ROMAN_MINOR, NOTE_CHOICES, SCALE_NAMES, CHORD_TYPES,
   parseNote, accidentalStr, pitchClass, normalizeNote, notesEqual,
