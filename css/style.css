@@ -534,3 +534,27 @@ header {
   text-transform: uppercase; letter-spacing: 0.05em; }
 .si-v { color: var(--text); font-weight: 600; letter-spacing: 0.03em; }
 .si-blurb { color: var(--text-muted); margin: 0.4rem 0 0; font-size: 0.85rem; }
+.si-legend { color: var(--text-muted); font-size: 0.72rem; margin: 0.35rem 0 0; }
+
+/* ── Guitar fretboard diagram (sight-reading decks) ──────────────────────────── */
+.fb-svg {
+  display: block;
+  width: 100%;
+  max-width: 420px;
+  margin: 0.6rem auto 0.4rem;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+.fb-string { stroke: var(--text-muted); stroke-width: 1.1; }
+.fb-fret   { stroke: var(--border);     stroke-width: 2; }
+.fb-nut    { stroke: var(--text);       stroke-width: 4; }
+.fb-inlay  { fill: var(--surface3); }
+.fb-open-label, .fb-fretnum {
+  fill: var(--text-muted);
+  font-size: 9px;
+  font-family: 'Segoe UI', system-ui, sans-serif;
+}
+.fb-open-label { font-weight: 600; }
+.fb-dot  { fill: var(--accent); stroke: #fff; stroke-width: 1; }
+.fb-open { fill: none; stroke: var(--accent); stroke-width: 2.5; }

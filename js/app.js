@@ -437,6 +437,7 @@ function scaleLab(mount, { root = 'C', scale = 'Major' } = {}) {
         `<div class="si-row"><span class="si-k">Formula</span><span class="si-v">${scaleFormula(s)}</span></div>` +
         `<div class="si-row"><span class="si-k">Steps</span><span class="si-v">${scaleStepPattern(s)}</span></div>` +
         `<div class="si-row"><span class="si-k">Notes</span><span class="si-v">${notes.length}${notes.length === 12 ? '' : ' + the octave'}</span></div>` +
+        `<div class="si-legend">W = whole step · H = half step · W+H = three half steps (a skipped degree)</div>` +
         (SCALE_INFO[s] ? `<p class="si-blurb">${SCALE_INFO[s]}</p>` : '');
       mountNotation(mount2, scaleToABC(r, s), { clickToHear: true });
     } catch (e) { out.textContent = 'n/a'; info.innerHTML = ''; }

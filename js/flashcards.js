@@ -9,6 +9,10 @@ import {
   keySignature, relativeMinor, chordSymbol, chordFullName, identifyChord, pitchClass,
   CHROMATIC_SHARP, CHROMATIC_FLAT, CIRCLE_OF_FIFTHS
 } from './theory.js';
+import {
+  GUITAR_WRITTEN_OFFSET, midiToNote, enharmonicOf,
+  positionsForMidi, fretboardPositions, fretboardSVG, positionLabel
+} from './fretboard.js';
 
 const pick = arr => arr[Math.floor(Math.random() * arr.length)];
 const fmt = n => n.replaceAll('#', '♯').replaceAll('b', '♭');
@@ -73,6 +77,24 @@ function altNames(notes, root, type) {
     if (seen.has(r.symbol)) return false;
     seen.add(r.symbol); return true;
   });
+}
+
+
+// Fretboard decks. Levels walk up the neck; the first stays on natural notes in open
+// position, which is where sight-reading on guitar normally starts.
+const FRET_LEVELS = {
+  open:   { maxFret: 3,  frets: 5,  naturalsOnly: true },
+  five:   { maxFret: 5,  frets: 5,  naturalsOnly: false },
+  twelve: { maxFret: 12, frets: 12, naturalsOnly: false }
+};
+const FRET_LEVEL_LIST = [
+  { id: 'open', label: 'Open position · naturals' },
+  { id: 'five', label: 'Frets 0–5' },
+  { id: 'twelve', label: 'Whole neck (0–12)' }
+];
+function fretPool(cfg) {
+  const all = fretboardPositions(cfg.maxFret);
+  return cfg.naturalsOnly ? all.filter(p => !CHROMATIC_SHARP[p.midi % 12].includes('#')) : all;
 }
 
 const DECKS = [
@@ -218,7 +240,56 @@ const DECKS = [
         play: { notes: octaveScale(getScaleNotes(key, 'Major')) }
       };
     }
-  }
+  },
+  {
+    id: 'fret-read',
+    title: 'Sheet Music → Fretboard',
+    blurb: 'A note appears on the staff — find every place it lives on the neck.',
+    defaultLevel: 'open',
+    levels: FRET_LEVEL_LIST,
+    generate(levelId = 'open') {
+      const cfg = lvl(FRET_LEVELS, levelId);
+      const pool = fretPool(cfg);
+      const { midi } = pick(pool);
+      const sound = midiToNote(midi);
+      const written = midiToNote(midi + GUITAR_WRITTEN_OFFSET);  // guitar reads an octave up
+      const spots = positionsForMidi(midi, cfg.maxFret);
+      const alt = enharmonicOf(sound.name);
+      return {
+        prompt: 'Where do you play this note?',
+        q: { abc: buildABC([{ name: written.name, octave: written.octave }], { clef: 'treble', dur: '4' }) },
+        a: {
+          html: big(fmt(sound.name) + sound.octave + (alt ? ` <span class="fc-muted">(= ${fmt(alt)}${sound.octave})</span>` : '')) +
+                fretboardSVG(spots, { frets: cfg.frets }) +
+                sub(spots.map(positionLabel).join(' · '))
+        },
+        play: { notes: [{ name: sound.name, octave: sound.octave }] }
+      };
+    }
+  },
+  {
+    id: 'fret-name',
+    title: 'Fretboard → Note',
+    blurb: 'A dot appears on the neck — name the note and picture it on the staff.',
+    defaultLevel: 'open',
+    levels: FRET_LEVEL_LIST,
+    generate(levelId = 'open') {
+      const cfg = lvl(FRET_LEVELS, levelId);
+      const spot = pick(fretPool(cfg));
+      const sound = midiToNote(spot.midi);
+      const written = midiToNote(spot.midi + GUITAR_WRITTEN_OFFSET);
+      const alt = enharmonicOf(sound.name);
+      return {
+        prompt: 'Name this note',
+        q: { html: fretboardSVG([spot], { frets: cfg.frets }) + sub(positionLabel(spot)) },
+        a: {
+          html: big(fmt(sound.name) + sound.octave + (alt ? ` <span class="fc-muted">(= ${fmt(alt)}${sound.octave})</span>` : '')),
+          abc: buildABC([{ name: written.name, octave: written.octave }], { clef: 'treble', dur: '4' })
+        },
+        play: { notes: [{ name: sound.name, octave: sound.octave }] }
+      };
+    }
+  },
 ];
 
 const getDeck = id => DECKS.find(d => d.id === id) || null;
