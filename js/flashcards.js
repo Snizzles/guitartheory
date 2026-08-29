@@ -256,11 +256,15 @@ const DECKS = [
       const spots = positionsForMidi(midi, cfg.maxFret);
       const alt = enharmonicOf(sound.name);
       return {
-        prompt: 'Where do you play this note?',
-        q: { abc: buildABC([{ name: written.name, octave: written.octave }], { clef: 'treble', dur: '4' }) },
+        prompt: 'Tap where you would play this note',
+        q: {
+          abc: buildABC([{ name: written.name, octave: written.octave }], { clef: 'treble', dur: '4' }),
+          // Interactive board: any of `accept` is a correct answer (the same pitch can
+          // sit on more than one string).
+          fretboard: { frets: cfg.frets, accept: spots }
+        },
         a: {
           html: big(fmt(sound.name) + sound.octave + (alt ? ` <span class="fc-muted">(= ${fmt(alt)}${sound.octave})</span>` : '')) +
-                fretboardSVG(spots, { frets: cfg.frets }) +
                 sub(spots.map(positionLabel).join(' · '))
         },
         play: { notes: [{ name: sound.name, octave: sound.octave }] }

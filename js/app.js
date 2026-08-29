@@ -10,6 +10,7 @@ import { playNote, playSequence, playChord, playInterval, primeAudio } from './a
 import { renderQuiz } from './quiz.js';
 import { DECKS, getDeck } from './flashcards.js';
 import { GLOSSARY } from './glossary.js';
+import { fretboardSVG, positionLabel } from './fretboard.js';
 import {
   NOTE_CHOICES, SCALE_NAMES, CHORD_TYPES,
   getScaleNotes, getChordNotes, getInterval, noteAtInterval, INTERVAL_CATALOG,
@@ -637,6 +638,53 @@ function renderCard(mount, card, onNext, count) {
     qArea.appendChild(m);
     mountNotation(m, card.q.abc, { clickToHear: true });
   }
+  // Tap-to-answer fretboard: mark the tapped cell right or wrong in place.
+  let showAllPositions = null;
+  if (card.q.fretboard) {
+    const { frets, accept } = card.q.fretboard;
+    const holder = el('div');
+    holder.innerHTML = fretboardSVG([], { frets, interactive: true });
+    qArea.appendChild(holder);
+    const svg = holder.querySelector('svg');
+    const status = el('div', 'fb-status');
+    status.setAttribute('aria-live', 'polite');
+    qArea.appendChild(status);
+
+    const markAt = (s2, f, cls) =>
+      svg.querySelector(`.fb-mark[data-string="${s2}"][data-fret="${f}"]`)?.classList.add(cls);
+    let solved = false;
+    showAllPositions = () => {
+      accept.forEach(p2 => markAt(p2.string, p2.fret, 'correct'));
+      solved = true;
+    };
+    const answer = (s2, f) => {
+      if (solved) return;
+      const hit = accept.some(p2 => p2.string === s2 && p2.fret === f);
+      if (hit) {
+        markAt(s2, f, 'correct');
+        solved = true;
+        status.className = 'fb-status good';
+        status.textContent = `✓ Yes — ${positionLabel({ string: s2, fret: f })}` +
+          (accept.length > 1 ? ` (also ${accept.filter(p2 => !(p2.string === s2 && p2.fret === f)).map(positionLabel).join(', ')})` : '');
+        if (card.play) playSequence(card.play.notes, 0.45);
+      } else {
+        // only the most recent wrong guess stays lit, so the board doesn't fill with red
+        svg.querySelectorAll('.fb-mark.wrong').forEach(n => n.classList.remove('wrong'));
+        markAt(s2, f, 'wrong');
+        status.className = 'fb-status bad';
+        status.textContent = `✗ That is ${positionLabel({ string: s2, fret: f })} — try again, or reveal.`;
+      }
+    };
+    svg.addEventListener('click', e => {
+      const cell = e.target.closest('.fb-hit');
+      if (cell) answer(+cell.dataset.string, +cell.dataset.fret);
+    });
+    svg.addEventListener('keydown', e => {
+      if (e.key !== 'Enter' && e.key !== ' ') return;
+      const cell = e.target.closest('.fb-hit');
+      if (cell) { e.preventDefault(); answer(+cell.dataset.string, +cell.dataset.fret); }
+    });
+  }
   c.appendChild(qArea);
 
   if (card.play) {
@@ -665,6 +713,7 @@ function renderCard(mount, card, onNext, count) {
     // Defer to the next frame so the now-visible container has a measured width
     // before abcjs renders (mobile Safari renders a blank SVG otherwise).
     if (card.a.abc) mountNotation(aArea.querySelector('.notation-mount'), card.a.abc, { clickToHear: true });
+    if (showAllPositions) showAllPositions();
   }
   reveal.addEventListener('click', () => { doReveal(); reveal.blur(); });
   next.addEventListener('click', () => { next.blur(); onNext(); });

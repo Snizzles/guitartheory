@@ -558,3 +558,13 @@ header {
 .fb-open-label { font-weight: 600; }
 .fb-dot  { fill: var(--accent); stroke: #fff; stroke-width: 1; }
 .fb-open { fill: none; stroke: var(--accent); stroke-width: 2.5; }
+/* Tap-to-answer fretboard */
+.fb-hit { fill: transparent; cursor: pointer; }
+.fb-hit:hover { fill: rgba(255,255,255,0.06); }
+.fb-hit:focus-visible { fill: rgba(139,124,246,0.22); outline: none; }
+.fb-mark { opacity: 0; stroke: #fff; stroke-width: 1; transition: opacity 0.12s; }
+.fb-mark.correct { opacity: 1; fill: var(--correct); }
+.fb-mark.wrong   { opacity: 1; fill: var(--incorrect); }
+.fb-status { text-align: center; font-size: 0.85rem; min-height: 1.3em; margin-top: 0.2rem; }
+.fb-status.good { color: var(--correct); }
+.fb-status.bad  { color: var(--incorrect); }
