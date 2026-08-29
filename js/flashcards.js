@@ -11,7 +11,7 @@ import {
 } from './theory.js';
 import {
   GUITAR_WRITTEN_OFFSET, midiToNote, enharmonicOf,
-  positionsForMidi, fretboardPositions, fretboardSVG, positionLabel
+  positionsForMidi, fretboardPositions, naturalPositionsOnString, fretboardSVG, positionLabel
 } from './fretboard.js';
 
 const pick = arr => arr[Math.floor(Math.random() * arr.length)];
@@ -96,6 +96,15 @@ function fretPool(cfg) {
   const all = fretboardPositions(cfg.maxFret);
   return cfg.naturalsOnly ? all.filter(p => !CHROMATIC_SHARP[p.midi % 12].includes('#')) : all;
 }
+
+// One string at a time, in ascending order — the scaffolded step between reading a
+// single note and being quizzed at random across the whole neck.
+const STRING_LEVEL_LIST = [
+  { id: 's6', label: '6th (low E)' }, { id: 's5', label: '5th (A)' }, { id: 's4', label: '4th (D)' },
+  { id: 's3', label: '3rd (G)' },     { id: 's2', label: '2nd (B)' }, { id: 's1', label: '1st (high e)' }
+];
+const STRING_INDEX = { s6: 0, s5: 1, s4: 2, s3: 3, s2: 4, s1: 5 };
+const STRING_NAME  = { s6: '6th (low E)', s5: '5th (A)', s4: '4th (D)', s3: '3rd (G)', s2: '2nd (B)', s1: '1st (high e)' };
 
 const DECKS = [
   {
@@ -292,6 +301,33 @@ const DECKS = [
         },
         play: { notes: [{ name: sound.name, octave: sound.octave }] }
       };
+    }
+  },
+  {
+    id: 'string-walk',
+    title: 'One String at a Time',
+    blurb: 'Walk the natural notes up a single string, in order — the steady way to learn the neck.',
+    defaultLevel: 's6',
+    levels: STRING_LEVEL_LIST,
+    ordered: true,
+    // Ordered, not random: the same notes in the same ascending order every pass, so the
+    // shape of the string sinks in before the random decks jump around.
+    sequence(levelId = 's6') {
+      const si = STRING_INDEX[levelId] ?? 0;
+      return naturalPositionsOnString(si, 12).map(spot => {
+        const sound = midiToNote(spot.midi);
+        const written = midiToNote(spot.midi + GUITAR_WRITTEN_OFFSET);
+        const elsewhere = positionsForMidi(spot.midi, 12).filter(q => q.string !== si);
+        return {
+          prompt: `Where is this note on the ${STRING_NAME[levelId]} string?`,
+          q: {
+            abc: buildABC([{ name: written.name, octave: written.octave }], { clef: 'treble', dur: '4' }),
+            fretboard: { frets: 12, accept: [spot], sameNote: elsewhere, drillString: si }
+          },
+          a: { html: big(fmt(sound.name) + sound.octave) + sub(positionLabel(spot)) },
+          play: { notes: [{ name: sound.name, octave: sound.octave }] }
+        };
+      });
     }
   },
 ];

@@ -10,7 +10,7 @@ import { playNote, playSequence, playChord, playInterval, primeAudio } from './a
 import { renderQuiz } from './quiz.js';
 import { DECKS, getDeck } from './flashcards.js';
 import { GLOSSARY } from './glossary.js';
-import { fretboardSVG, positionLabel } from './fretboard.js';
+import { fretboardSVG, positionLabel, midiToNote, STANDARD_TUNING, GUITAR_WRITTEN_OFFSET } from './fretboard.js';
 import {
   NOTE_CHOICES, SCALE_NAMES, CHORD_TYPES,
   getScaleNotes, getChordNotes, getInterval, noteAtInterval, INTERVAL_CATALOG,
@@ -43,6 +43,7 @@ function currentRoute() {
   if (h.startsWith('lesson/')) return { view: 'lesson', id: h.slice('lesson/'.length) };
   if (h.startsWith('practice/')) return { view: 'practice', id: h.slice('practice/'.length) };
   if (h === 'glossary') return { view: 'glossary' };
+  if (h === 'fretboard') return { view: 'fretboard' };
   return { view: 'home' };
 }
 function go(hash) { location.hash = hash; }
@@ -60,6 +61,10 @@ function renderSidebar() {
   const gloss = el('button', 'side-home' + (route.view === 'glossary' ? ' active' : ''), '📖 Glossary');
   gloss.addEventListener('click', () => go('#/glossary'));
   nav.appendChild(gloss);
+
+  const fbMap = el('button', 'side-home' + (route.view === 'fretboard' ? ' active' : ''), '🎸 Fretboard Map');
+  fbMap.addEventListener('click', () => go('#/fretboard'));
+  nav.appendChild(fbMap);
 
   // Practice / memorization decks
   const pracWrap = el('div', 'side-module');
@@ -183,6 +188,79 @@ function renderGlossary() {
     list.appendChild(el('dd', 'gloss-def', def));
   });
   main.appendChild(list);
+  $('#content-scroll').scrollTop = 0;
+}
+
+// ─── Fretboard map (reference) ──────────────────────────────────────────────
+function renderFretboardMap() {
+  const main = $('#content');
+  main.innerHTML = '';
+  const header = el('div', 'lesson-header');
+  header.appendChild(el('div', 'lesson-eyebrow', 'Reference'));
+  header.appendChild(el('h1', 'lesson-title', 'Fretboard Map'));
+  header.appendChild(el('p', 'hero-sub',
+    'Every note on the first twelve frets. Tap any position to hear it and see it on the staff.'));
+  main.appendChild(header);
+
+  let only = null;   // null = show every string
+  const ctrl = el('div', 'level-control');
+  ctrl.appendChild(el('span', 'level-label', 'Show'));
+  const opts = [{ id: null, label: 'All strings' }].concat(
+    STANDARD_TUNING.map((t, i) => ({ id: i, label: `${6 - i}${['st','nd','rd','th','th','th'][5 - i]} (${t.label})` })).reverse());
+  opts.forEach(o => {
+    const b = el('button', 'level-btn' + (o.id === only ? ' active' : ''), o.label);
+    b.addEventListener('click', () => {
+      only = o.id;
+      ctrl.querySelectorAll('.level-btn').forEach(x => x.classList.remove('active'));
+      b.classList.add('active');
+      detail.innerHTML = '';           // the previous pick may not be on this string
+      staff.style.display = 'none';
+      draw();
+    });
+    ctrl.appendChild(b);
+  });
+  main.appendChild(ctrl);
+
+  const board = el('div', 'fb-map card-block');
+  main.appendChild(board);
+  const detail = el('div', 'fb-detail');
+  main.appendChild(detail);
+  const staff = el('div', 'notation-mount');
+  staff.style.display = 'none';
+  main.appendChild(staff);
+
+  main.appendChild(el('div', 'callout tip',
+    '<div class="callout-title">Written vs sounding</div><div class="callout-body">' +
+    'Guitar music is written one octave <em>higher</em> than it sounds, so the staff here shows the ' +
+    'written pitch while the name on the neck is the note you actually hear.</div>'));
+
+  function draw() {
+    board.innerHTML = fretboardSVG([], { frets: 12, interactive: true, showNames: true, onlyString: only });
+    board.querySelector('svg').addEventListener('click', e => {
+      const cell = e.target.closest('.fb-hit');
+      if (cell) show(+cell.dataset.string, +cell.dataset.fret);
+    });
+    board.querySelector('svg').addEventListener('keydown', e => {
+      if (e.key !== 'Enter' && e.key !== ' ') return;
+      const cell = e.target.closest('.fb-hit');
+      if (cell) { e.preventDefault(); show(+cell.dataset.string, +cell.dataset.fret); }
+    });
+  }
+  function show(si, fret) {
+    if (only != null && si !== only) return;
+    const midi = STANDARD_TUNING[si].midi + fret;
+    const sound = midiToNote(midi);
+    const written = midiToNote(midi + GUITAR_WRITTEN_OFFSET);
+    board.querySelectorAll('.fb-mark').forEach(n => n.classList.remove('correct'));
+    board.querySelector(`.fb-mark[data-string="${si}"][data-fret="${fret}"]`)?.classList.add('correct');
+    detail.innerHTML = `<strong>${fmtAcc(sound.name)}${sound.octave}</strong> · ${positionLabel({ string: si, fret })}`;
+    staff.style.display = '';
+    mountNotation(staff, buildABC([{ name: written.name, octave: written.octave }],
+      { clef: 'treble', dur: '4' }), { clickToHear: true });
+    playNote(sound.name, sound.octave, 0.7);
+  }
+
+  draw();
   $('#content-scroll').scrollTop = 0;
 }
 
@@ -569,6 +647,7 @@ function render() {
   if (route.view === 'lesson') renderLesson(route.id);
   else if (route.view === 'practice') renderPractice(route.id);
   else if (route.view === 'glossary') renderGlossary();
+  else if (route.view === 'fretboard') renderFretboardMap();
   else renderHome();
   // close mobile sidebar on navigation
   document.body.classList.remove('sidebar-open');
@@ -589,6 +668,9 @@ function renderPractice(id) {
 
   let level = deck.defaultLevel || (deck.levels && deck.levels[0].id) || null;
   let count = 0;
+  // Ordered decks walk a fixed list instead of generating a random card each time.
+  let seq = null, seqIdx = 0;
+  const rebuildSeq = () => { seq = deck.sequence ? deck.sequence(level) : null; seqIdx = 0; };
 
   if (deck.levels) {
     const lc = el('div', 'level-control');
@@ -601,6 +683,7 @@ function renderPractice(id) {
         lc.querySelectorAll('.level-btn').forEach(x => x.classList.remove('active'));
         b.classList.add('active');
         count = 0;
+        rebuildSeq();
         nextCard();
       });
       lc.appendChild(b);
@@ -612,9 +695,16 @@ function renderPractice(id) {
   main.appendChild(cardMount);
 
   function nextCard() {
-    count++;
-    renderCard(cardMount, deck.generate(level), nextCard, count);
+    if (seq && seq.length) {
+      const i = seqIdx % seq.length;
+      seqIdx++;
+      renderCard(cardMount, seq[i], nextCard, `${i + 1} of ${seq.length}`);
+    } else {
+      count++;
+      renderCard(cardMount, deck.generate(level), nextCard, `Card ${count}`);
+    }
   }
+  rebuildSeq();
   nextCard();
 
   const footer = el('div', 'lesson-nav');
@@ -625,10 +715,10 @@ function renderPractice(id) {
   $('#content-scroll').scrollTop = 0;
 }
 
-function renderCard(mount, card, onNext, count) {
+function renderCard(mount, card, onNext, label) {
   mount.innerHTML = '';
   const c = el('div', 'flashcard card-block');
-  c.appendChild(el('div', 'fc-count', `Card ${count}`));
+  c.appendChild(el('div', 'fc-count', label));
   c.appendChild(el('div', 'fc-prompt', card.prompt));
 
   const qArea = el('div', 'fc-q');
@@ -669,10 +759,19 @@ function renderCard(mount, card, onNext, count) {
         if (card.play) playSequence(card.play.notes, 0.45);
       } else {
         // only the most recent wrong guess stays lit, so the board doesn't fill with red
-        svg.querySelectorAll('.fb-mark.wrong').forEach(n => n.classList.remove('wrong'));
-        markAt(s2, f, 'wrong');
-        status.className = 'fb-status bad';
-        status.textContent = `✗ That is ${positionLabel({ string: s2, fret: f })} — try again, or reveal.`;
+        svg.querySelectorAll('.fb-mark.wrong, .fb-mark.near').forEach(n => n.classList.remove('wrong', 'near'));
+        const rightPitch = (card.q.fretboard.sameNote || []).some(p2 => p2.string === s2 && p2.fret === f);
+        if (rightPitch) {
+          // correct note, wrong string — worth saying so rather than a flat "wrong"
+          markAt(s2, f, 'near');
+          status.className = 'fb-status near';
+          status.textContent = `♪ Right note — but that's the ${positionLabel({ string: s2, fret: f })}. ` +
+            `This drill is on the ${positionLabel(accept[0]).split(',')[0]}.`;
+        } else {
+          markAt(s2, f, 'wrong');
+          status.className = 'fb-status bad';
+          status.textContent = `✗ That is ${positionLabel({ string: s2, fret: f })} — try again, or reveal.`;
+        }
       }
     };
     svg.addEventListener('click', e => {

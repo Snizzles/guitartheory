@@ -63,7 +63,7 @@ const INLAY_FRETS = [3, 5, 7, 9];
 // With `interactive: true` the diagram also carries a transparent hit target and a
 // hidden marker circle for every (string, fret) cell, so a caller can turn a tap into
 // right/wrong feedback without needing to know any of the geometry.
-function fretboardSVG(marks = [], { frets = 5, tuning = STANDARD_TUNING, interactive = false } = {}) {
+function fretboardSVG(marks = [], { frets = 5, tuning = STANDARD_TUNING, interactive = false, showNames = false, onlyString = null } = {}) {
   const padL = 40, padR = 12, padT = 14, padB = 22;
   const fretW = 46, stringGap = 17;
   const boardW = fretW * frets;
@@ -94,6 +94,19 @@ function fretboardSVG(marks = [], { frets = 5, tuning = STANDARD_TUNING, interac
     p.push(`<line class="fb-string" x1="${padL}" y1="${yOf(i)}" x2="${padL + boardW}" y2="${yOf(i)}"/>`);
     p.push(`<text class="fb-open-label" x="6" y="${yOf(i) + 4}">${s.label}</text>`);
   });
+
+  // note names at every position (the reference map)
+  if (showNames) {
+    tuning.forEach((s2, i) => {
+      if (onlyString != null && i !== onlyString) return;
+      for (let f = 0; f <= frets; f++) {
+        const n = midiToNote(s2.midi + f).name.replace('#', '\u266f');
+        const cx = f === 0 ? padL - 13 : centreOf(f);
+        p.push(`<circle class="fb-namebg" cx="${cx}" cy="${yOf(i)}" r="7.5"/>`);
+        p.push(`<text class="fb-name" x="${cx}" y="${yOf(i) + 3}" text-anchor="middle">${n}</text>`);
+      }
+    });
+  }
 
   // fret numbers
   for (let f = 1; f <= frets; f++)
@@ -132,6 +145,16 @@ function fretboardSVG(marks = [], { frets = 5, tuning = STANDARD_TUNING, interac
   return p.join('');
 }
 
+// The natural notes ascending one string — the classic way to learn a string.
+function naturalPositionsOnString(stringIndex, maxFret = 12, tuning = STANDARD_TUNING) {
+  const out = [];
+  for (let f = 0; f <= maxFret; f++) {
+    const midi = tuning[stringIndex].midi + f;
+    if (!CHROMATIC_SHARP[midi % 12].includes('#')) out.push({ string: stringIndex, fret: f, midi });
+  }
+  return out;
+}
+
 // "6th string, 3rd fret" / "1st string, open"
 const ORDINAL = ['1st', '2nd', '3rd', '4th', '5th', '6th'];
 function positionLabel({ string, fret }) {
@@ -142,5 +165,5 @@ function positionLabel({ string, fret }) {
 export {
   STANDARD_TUNING, GUITAR_WRITTEN_OFFSET,
   midiOf, midiToNote, enharmonicOf,
-  positionsForMidi, fretboardPositions, fretboardSVG, positionLabel
+  positionsForMidi, fretboardPositions, naturalPositionsOnString, fretboardSVG, positionLabel
 };
