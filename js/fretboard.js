@@ -60,7 +60,10 @@ const INLAY_FRETS = [3, 5, 7, 9];
 
 // Render a fretboard diagram as an SVG string. `marks` is [{string,fret}]; the low E
 // is drawn at the bottom, as when looking down at the neck while playing.
-function fretboardSVG(marks = [], { frets = 5, tuning = STANDARD_TUNING } = {}) {
+// With `interactive: true` the diagram also carries a transparent hit target and a
+// hidden marker circle for every (string, fret) cell, so a caller can turn a tap into
+// right/wrong feedback without needing to know any of the geometry.
+function fretboardSVG(marks = [], { frets = 5, tuning = STANDARD_TUNING, interactive = false } = {}) {
   const padL = 40, padR = 12, padT = 14, padB = 22;
   const fretW = 46, stringGap = 17;
   const boardW = fretW * frets;
@@ -105,6 +108,25 @@ function fretboardSVG(marks = [], { frets = 5, tuning = STANDARD_TUNING } = {}) 
       p.push(`<circle class="fb-dot" cx="${centreOf(m.fret)}" cy="${yOf(m.string)}" r="7"/>`);
     }
   });
+
+  if (interactive) {
+    // hidden markers first, then transparent hit targets on top so they catch the tap
+    tuning.forEach((s2, i) => {
+      for (let f = 0; f <= frets; f++) {
+        const cx = f === 0 ? padL - 13 : centreOf(f);
+        p.push(`<circle class="fb-mark" data-string="${i}" data-fret="${f}" cx="${cx}" cy="${yOf(i)}" r="${f === 0 ? 5.5 : 7}"/>`);
+      }
+    });
+    tuning.forEach((s2, i) => {
+      for (let f = 0; f <= frets; f++) {
+        const x = f === 0 ? 0 : xOfFret(f - 1);
+        const wCell = f === 0 ? padL : fretW;
+        p.push(`<rect class="fb-hit" data-string="${i}" data-fret="${f}" role="button" tabindex="0" ` +
+               `aria-label="${positionLabel({ string: i, fret: f })}" ` +
+               `x="${x}" y="${yOf(i) - stringGap / 2}" width="${wCell}" height="${stringGap}"/>`);
+      }
+    });
+  }
 
   p.push('</svg>');
   return p.join('');
