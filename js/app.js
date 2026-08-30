@@ -768,6 +768,12 @@ function renderCard(mount, card, onNext, label) {
 
     const markAt = (s2, f, cls) =>
       svg.querySelector(`.fb-mark[data-string="${s2}"][data-fret="${f}"]`)?.classList.add(cls);
+    // Name whatever is at a position — the point of the drill is the note, not the
+    // coordinates, so every response says which note it is.
+    const noteAt = (s2, f) => {
+      const n = midiToNote(STANDARD_TUNING[s2].midi + f);
+      return fmtAcc(n.name) + n.octave;
+    };
     let solved = false;
     showAllPositions = () => {
       accept.forEach(p2 => markAt(p2.string, p2.fret, 'correct'));
@@ -780,8 +786,8 @@ function renderCard(mount, card, onNext, label) {
         markAt(s2, f, 'correct');
         solved = true;
         status.className = 'fb-status good';
-        status.textContent = `✓ Yes — ${positionLabel({ string: s2, fret: f })}` +
-          (accept.length > 1 ? ` (also ${accept.filter(p2 => !(p2.string === s2 && p2.fret === f)).map(positionLabel).join(', ')})` : '');
+        status.innerHTML = `✓ Yes — <strong>${noteAt(s2, f)}</strong>, ${positionLabel({ string: s2, fret: f })}` +
+          (accept.length > 1 ? ` <span class="fb-also">(also ${accept.filter(p2 => !(p2.string === s2 && p2.fret === f)).map(positionLabel).join(', ')})</span>` : '');
         if (card.play) playSequence(card.play.notes, 0.45);
       } else {
         // only the most recent wrong guess stays lit, so the board doesn't fill with red
@@ -791,12 +797,12 @@ function renderCard(mount, card, onNext, label) {
           // correct note, wrong string — worth saying so rather than a flat "wrong"
           markAt(s2, f, 'near');
           status.className = 'fb-status near';
-          status.textContent = `♪ Right note — but that's the ${positionLabel({ string: s2, fret: f })}. ` +
-            `This drill is on the ${positionLabel(accept[0]).split(',')[0]}.`;
+          status.innerHTML = `♪ Right note (<strong>${noteAt(s2, f)}</strong>) — but that's the ` +
+            `${positionLabel({ string: s2, fret: f })}. This drill is on the ${positionLabel(accept[0]).split(',')[0]}.`;
         } else {
           markAt(s2, f, 'wrong');
           status.className = 'fb-status bad';
-          status.textContent = `✗ That is ${positionLabel({ string: s2, fret: f })} — try again, or reveal.`;
+          status.innerHTML = `✗ That's <strong>${noteAt(s2, f)}</strong> — ${positionLabel({ string: s2, fret: f })}. Try again, or reveal.`;
         }
       }
     };

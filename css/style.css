@@ -580,3 +580,5 @@ header {
 /* Full-neck map scrolls sideways instead of shrinking the cells away */
 .fb-map.wide { overflow-x: auto; }
 .fb-map.wide .fb-svg { min-width: 620px; max-width: none; }
+.fb-status strong { font-weight: 700; }
+.fb-also { color: var(--text-muted); font-size: 0.8rem; }
