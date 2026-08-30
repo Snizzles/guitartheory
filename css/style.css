@@ -577,3 +577,6 @@ header {
 .fb-detail strong { color: var(--accent); font-size: 1.1rem; }
 .fb-mark.near { opacity: 1; fill: var(--amber); }
 .fb-status.near { color: var(--amber); }
+/* Full-neck map scrolls sideways instead of shrinking the cells away */
+.fb-map.wide { overflow-x: auto; }
+.fb-map.wide .fb-svg { min-width: 620px; max-width: none; }

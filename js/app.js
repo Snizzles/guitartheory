@@ -202,7 +202,8 @@ function renderFretboardMap() {
     'Every note on the first twelve frets. Tap any position to hear it and see it on the staff.'));
   main.appendChild(header);
 
-  let only = null;   // null = show every string
+  let only = null;      // null = show every string
+  let fretCount = 5;    // first position by default — 12 frets shrinks past readability
   const ctrl = el('div', 'level-control');
   ctrl.appendChild(el('span', 'level-label', 'Show'));
   const opts = [{ id: null, label: 'All strings' }].concat(
@@ -221,6 +222,22 @@ function renderFretboardMap() {
   });
   main.appendChild(ctrl);
 
+  const rangeCtrl = el('div', 'level-control');
+  rangeCtrl.appendChild(el('span', 'level-label', 'Frets'));
+  [{ n: 5, label: '0–5 (first position)' }, { n: 12, label: '0–12 (full)' }].forEach(o => {
+    const b = el('button', 'level-btn' + (o.n === fretCount ? ' active' : ''), o.label);
+    b.addEventListener('click', () => {
+      fretCount = o.n;
+      rangeCtrl.querySelectorAll('.level-btn').forEach(x => x.classList.remove('active'));
+      b.classList.add('active');
+      detail.innerHTML = '';
+      staff.style.display = 'none';
+      draw();
+    });
+    rangeCtrl.appendChild(b);
+  });
+  main.appendChild(rangeCtrl);
+
   const board = el('div', 'fb-map card-block');
   main.appendChild(board);
   const detail = el('div', 'fb-detail');
@@ -229,13 +246,22 @@ function renderFretboardMap() {
   staff.style.display = 'none';
   main.appendChild(staff);
 
+  main.appendChild(el('div', 'callout key',
+    '<div class="callout-title">Why the first five frets are enough</div><div class="callout-body">' +
+    'At the <strong>5th fret</strong> each string reaches the next string\u2019s open note — 6th string ' +
+    'fret 5 is the same A as the open 5th string. So frets 0–5 already contain every note name; ' +
+    'higher up they simply repeat. The one exception is the <strong>3rd string (G)</strong>, which meets ' +
+    'the open 2nd string (B) at fret <strong>4</strong>, because that pair is a major 3rd apart rather ' +
+    'than a 4th.</div>'));
+
   main.appendChild(el('div', 'callout tip',
     '<div class="callout-title">Written vs sounding</div><div class="callout-body">' +
     'Guitar music is written one octave <em>higher</em> than it sounds, so the staff here shows the ' +
     'written pitch while the name on the neck is the note you actually hear.</div>'));
 
   function draw() {
-    board.innerHTML = fretboardSVG([], { frets: 12, interactive: true, showNames: true, onlyString: only });
+    board.classList.toggle('wide', fretCount > 5);   // scroll rather than shrink
+    board.innerHTML = fretboardSVG([], { frets: fretCount, interactive: true, showNames: true, onlyString: only });
     board.querySelector('svg').addEventListener('click', e => {
       const cell = e.target.closest('.fb-hit');
       if (cell) show(+cell.dataset.string, +cell.dataset.fret);
