@@ -27,8 +27,8 @@ Eight modules, beginner → advanced:
 - **Interactive explorers** — a mini piano, an interval lab, scale & chord builders, and a clickable circle of fifths
 - **End-of-lesson quizzes** — optional self-checks at the end of each lesson; passing marks it complete
 - **Practice flashcards** — unscored memorization decks (note reading, notes-in-a-chord, name-the-chord, intervals, scale spelling, key signatures, and two guitar sight-reading decks that map the staff to a fretboard) you can drill anytime; flip to check yourself and hear every answer. Each deck has a **difficulty selector** that starts on the basics (e.g. major/minor triads) and adds advanced material only when you choose
-- **Fretboard Map** — a reference page showing every note on the first twelve frets; filter to one string and tap any position to hear it and see it on the staff
-- **Sequential drills** — "One String at a Time" walks the natural notes up a single string in fixed order, the scaffolded step before the random decks
+- **Fretboard Map** — a reference page of every note in first position (frets 0–5, expandable to 12); filter to one string and tap any position to hear it and see it on the staff
+- **Sequential drills** — "One String at a Time" walks the natural notes up a single string in fixed order through the 5th fret, the scaffolded step before the random decks
 - **Progress tracking** — completion ticks, course %, and resume-where-you-left-off, saved in `localStorage`
 
 ## Tech Stack

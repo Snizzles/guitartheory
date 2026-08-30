@@ -80,17 +80,19 @@ function altNames(notes, root, type) {
 }
 
 
-// Fretboard decks. Levels walk up the neck; the first stays on natural notes in open
-// position, which is where sight-reading on guitar normally starts.
+// Fretboard decks. Everything stays inside first position (frets 0-5). Past the 5th fret the notes
+// simply repeat on the next string up, and a 12-fret diagram shrinks the cells until
+// they are too small to read or tap on a phone. Difficulty comes from adding sharps
+// and widening the fret range, not from running up the neck.
 const FRET_LEVELS = {
-  open:   { maxFret: 3,  frets: 5,  naturalsOnly: true },
-  five:   { maxFret: 5,  frets: 5,  naturalsOnly: false },
-  twelve: { maxFret: 12, frets: 12, naturalsOnly: false }
+  open:  { maxFret: 3, frets: 5, naturalsOnly: true },
+  five:  { maxFret: 5, frets: 5, naturalsOnly: true },
+  sharps:{ maxFret: 5, frets: 5, naturalsOnly: false }
 };
 const FRET_LEVEL_LIST = [
-  { id: 'open', label: 'Open position · naturals' },
-  { id: 'five', label: 'Frets 0–5' },
-  { id: 'twelve', label: 'Whole neck (0–12)' }
+  { id: 'open', label: 'Frets 0–3 · naturals' },
+  { id: 'five', label: 'Frets 0–5 · naturals' },
+  { id: 'sharps', label: 'Frets 0–5 · with sharps' }
 ];
 function fretPool(cfg) {
   const all = fretboardPositions(cfg.maxFret);
@@ -306,7 +308,7 @@ const DECKS = [
   {
     id: 'string-walk',
     title: 'One String at a Time',
-    blurb: 'Walk the natural notes up a single string, in order — the steady way to learn the neck.',
+    blurb: 'Walk the natural notes up a single string in order, through the 5th fret — the steady way to learn the neck.',
     defaultLevel: 's6',
     levels: STRING_LEVEL_LIST,
     ordered: true,
@@ -314,15 +316,15 @@ const DECKS = [
     // shape of the string sinks in before the random decks jump around.
     sequence(levelId = 's6') {
       const si = STRING_INDEX[levelId] ?? 0;
-      return naturalPositionsOnString(si, 12).map(spot => {
+      return naturalPositionsOnString(si, 5).map(spot => {
         const sound = midiToNote(spot.midi);
         const written = midiToNote(spot.midi + GUITAR_WRITTEN_OFFSET);
-        const elsewhere = positionsForMidi(spot.midi, 12).filter(q => q.string !== si);
+        const elsewhere = positionsForMidi(spot.midi, 5).filter(q => q.string !== si);
         return {
           prompt: `Where is this note on the ${STRING_NAME[levelId]} string?`,
           q: {
             abc: buildABC([{ name: written.name, octave: written.octave }], { clef: 'treble', dur: '4' }),
-            fretboard: { frets: 12, accept: [spot], sameNote: elsewhere, drillString: si }
+            fretboard: { frets: 5, accept: [spot], sameNote: elsewhere, drillString: si }
           },
           a: { html: big(fmt(sound.name) + sound.octave) + sub(positionLabel(spot)) },
           play: { notes: [{ name: sound.name, octave: sound.octave }] }

@@ -65,7 +65,7 @@ const INLAY_FRETS = [3, 5, 7, 9];
 // right/wrong feedback without needing to know any of the geometry.
 function fretboardSVG(marks = [], { frets = 5, tuning = STANDARD_TUNING, interactive = false, showNames = false, onlyString = null } = {}) {
   const padL = 40, padR = 12, padT = 14, padB = 22;
-  const fretW = 46, stringGap = 17;
+  const fretW = 48, stringGap = 30;
   const boardW = fretW * frets;
   const w = padL + boardW + padR;
   const h = padT + stringGap * (tuning.length - 1) + padB;
