@@ -68,3 +68,9 @@ python3 -m http.server 8080
 
 Pushes to `main` are deployed automatically by `.github/workflows/pages.yml`.
 One-time setup: **Settings → Pages → Source → "GitHub Actions"**.
+
+## Tests
+
+Run `npm test` with Node.js 22 or newer. The dependency-free regression suite checks
+chord inversions, scale and accidental pitches, guitar notation playback, and course
+completion. GitHub Actions runs it for pull requests and pushes to `main`.

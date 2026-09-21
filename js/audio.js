@@ -3,7 +3,7 @@
 
 'use strict';
 
-import { pitchClass, parseNote } from './theory.js';
+import { midiOf } from './theory.js';
 
 let ctx = null;
 let audioUnavailable = false;
@@ -18,12 +18,7 @@ function audioCtx() {
   return ctx;
 }
 
-// MIDI number then frequency. C4 = 60, A4 = 69 = 440Hz.
-function midiOf(name, octave = 4) {
-  const { octave: parsedOct } = parseNote(name);
-  const oct = parsedOct != null ? parsedOct : octave;
-  return 12 * (oct + 1) + pitchClass(name);
-}
+// Frequency from absolute MIDI pitch. A4 = 69 = 440Hz.
 function freqOf(name, octave = 4) {
   return 440 * Math.pow(2, (midiOf(name, octave) - 69) / 12);
 }

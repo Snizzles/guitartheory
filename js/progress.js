@@ -49,6 +49,11 @@ function coursePercent(allLessonIds) {
   return Math.round((done / allLessonIds.length) * 100);
 }
 
+// Exact completion check: percentages can round up before every lesson is done.
+function isCourseComplete(allLessonIds) {
+  return allLessonIds.length > 0 && allLessonIds.every(isComplete);
+}
+
 // Per-module {done,total} given lessons grouped by module id.
 function modulePercent(lessonIds) {
   const done = lessonIds.filter(id => state.completed[id]).length;
@@ -62,5 +67,5 @@ function resetAll() {
 
 export {
   isComplete, markComplete, setLastLesson, getLastLesson,
-  completedCount, coursePercent, modulePercent, resetAll
+  completedCount, coursePercent, isCourseComplete, modulePercent, resetAll
 };

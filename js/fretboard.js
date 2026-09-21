@@ -7,14 +7,9 @@
 
 'use strict';
 
-import { pitchClass, parseNote, CHROMATIC_SHARP, CHROMATIC_FLAT } from './theory.js';
+import { pitchClass, midiOf, CHROMATIC_SHARP, CHROMATIC_FLAT } from './theory.js';
 
-// MIDI number of a note name + octave (C4 = 60, so E2 = 40).
-function midiOf(name, octave) {
-  const p = parseNote(name);
-  const oct = p.octave != null ? p.octave : octave;
-  return 12 * (oct + 1) + pitchClass(name);
-}
+// Convert absolute MIDI pitch back to a canonical note and octave.
 function midiToNote(midi) {
   return { name: CHROMATIC_SHARP[((midi % 12) + 12) % 12], octave: Math.floor(midi / 12) - 1 };
 }

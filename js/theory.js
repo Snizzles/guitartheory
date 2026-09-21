@@ -28,6 +28,23 @@ function parseNote(name) {
   return { letter, acc, octave };
 }
 
+// Preserve the written octave across accidental boundaries (B#4 = C5).
+function midiOf(name, octave = 4) {
+  const p = parseNote(name);
+  return 12 * ((p.octave ?? octave) + 1) + LETTER_PC[p.letter] + p.acc;
+}
+
+// Assign octaves to an ordered pitch-class list without changing its spelling.
+function ascendingNotes(names, base = 4) {
+  let previous = -Infinity;
+  return names.map(name => {
+    let octave = base;
+    while (midiOf(name, octave) <= previous) octave++;
+    previous = midiOf(name, octave);
+    return { name, octave };
+  });
+}
+
 function accidentalStr(acc) {
   if (acc > 0) return '#'.repeat(acc);
   if (acc < 0) return 'b'.repeat(-acc);
@@ -550,17 +567,10 @@ function buildABC(events, opts = {}) {
 }
 
 // Turn a list of spelled notes into octave-bearing notes that really ascend —
-// bumping the octave whenever a letter wraps past B (e.g. the C after B in a
-// Dorian scale) — and append the tonic an octave up on top. Used for both
+// accounting for both letter changes and accidentals at octave boundaries — and append the tonic an octave up on top. Used for both
 // notation and audio so a scale sounds like a scale, not a sequence that dips.
 function octaveScale(names, startOct = 4) {
-  let prevPc = -1, oct = startOct;
-  const out = names.map((n, i) => {
-    const pc = pitchClass(n);
-    if (i > 0 && pc <= prevPc) oct++; // letter wrapped past B → next octave
-    prevPc = pc;
-    return { name: n, octave: oct };
-  });
+  const out = ascendingNotes(names, startOct);
   out.push({ name: names[0], octave: startOct + 1 });
   return out;
 }
@@ -582,7 +592,7 @@ export {
   SCALES, MODE_ORDER, MODE_CHARACTER, SCALE_INFO, scaleFormula, scaleStepPattern, CHORD_FORMULAS, CHORD_SUFFIX,
   INTERVAL_CATALOG, CIRCLE_OF_FIFTHS, SHARP_ORDER, FLAT_ORDER,
   ROMAN_MAJOR, ROMAN_MINOR, NOTE_CHOICES, SCALE_NAMES, CHORD_TYPES,
-  parseNote, accidentalStr, pitchClass, normalizeNote, notesEqual,
+  parseNote, midiOf, ascendingNotes, accidentalStr, pitchClass, normalizeNote, notesEqual,
   spellWithLetter, semitonesBetween, getInterval, noteAtInterval, transposeNote,
   getScaleNotes, getModeNotes, keySignature, relativeMinor, relativeMajor,
   getChordNotes, chordSymbol, chordFullName, CHORD_NAMES,

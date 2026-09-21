@@ -5,7 +5,7 @@
 'use strict';
 
 import {
-  buildABC, scaleToABC, getChordNotes, getScaleNotes, getInterval, noteAtInterval, INTERVAL_CATALOG, octaveScale,
+  ascendingNotes, buildABC, scaleToABC, getChordNotes, getScaleNotes, getInterval, noteAtInterval, INTERVAL_CATALOG, octaveScale,
   keySignature, relativeMinor, chordSymbol, chordFullName, identifyChord, pitchClass,
   CHROMATIC_SHARP, CHROMATIC_FLAT, CIRCLE_OF_FIFTHS
 } from './theory.js';
@@ -61,10 +61,10 @@ function chordCardCommon(levelId) {
 
 // Voice a root-position chord in a given inversion, octave-aware, for the staff.
 function voiceChord(notes, inv, base = 4) {
-  return notes.map((_, i) => {
-    const idx = (inv + i) % notes.length;
-    return { name: notes[idx], octave: base + (inv + i >= notes.length ? 1 : 0) };
-  });
+  const voiced = ascendingNotes(notes, base);
+  return voiced.slice(inv).concat(
+    voiced.slice(0, inv).map(n => ({ ...n, octave: n.octave + 1 }))
+  );
 }
 const INV_NAMES = ['root position', '1st inversion', '2nd inversion', '3rd inversion'];
 
@@ -268,13 +268,13 @@ const DECKS = [
       const alt = enharmonicOf(sound.name);
       return {
         prompt: 'Tap where you would play this note',
-        q: {
+        q: { playbackTranspose: -GUITAR_WRITTEN_OFFSET,
           abc: buildABC([{ name: written.name, octave: written.octave }], { clef: 'treble', dur: '4' }),
           // Interactive board: any of `accept` is a correct answer (the same pitch can
           // sit on more than one string).
           fretboard: { frets: cfg.frets, accept: spots }
         },
-        a: {
+        a: { playbackTranspose: -GUITAR_WRITTEN_OFFSET,
           html: big(fmt(sound.name) + sound.octave + (alt ? ` <span class="fc-muted">(= ${fmt(alt)}${sound.octave})</span>` : '')) +
                 sub(spots.map(positionLabel).join(' · '))
         },
@@ -296,8 +296,8 @@ const DECKS = [
       const alt = enharmonicOf(sound.name);
       return {
         prompt: 'Name this note',
-        q: { html: fretboardSVG([spot], { frets: cfg.frets }) + sub(positionLabel(spot)) },
-        a: {
+        q: { playbackTranspose: -GUITAR_WRITTEN_OFFSET, html: fretboardSVG([spot], { frets: cfg.frets }) + sub(positionLabel(spot)) },
+        a: { playbackTranspose: -GUITAR_WRITTEN_OFFSET,
           html: big(fmt(sound.name) + sound.octave + (alt ? ` <span class="fc-muted">(= ${fmt(alt)}${sound.octave})</span>` : '')),
           abc: buildABC([{ name: written.name, octave: written.octave }], { clef: 'treble', dur: '4' })
         },
@@ -322,11 +322,11 @@ const DECKS = [
         const elsewhere = positionsForMidi(spot.midi, 5).filter(q => q.string !== si);
         return {
           prompt: `Where is this note on the ${STRING_NAME[levelId]} string?`,
-          q: {
+          q: { playbackTranspose: -GUITAR_WRITTEN_OFFSET,
             abc: buildABC([{ name: written.name, octave: written.octave }], { clef: 'treble', dur: '4' }),
             fretboard: { frets: 5, accept: [spot], sameNote: elsewhere, drillString: si }
           },
-          a: { html: big(fmt(sound.name) + sound.octave) + sub(positionLabel(spot)) },
+          a: { playbackTranspose: -GUITAR_WRITTEN_OFFSET, html: big(fmt(sound.name) + sound.octave) + sub(positionLabel(spot)) },
           play: { notes: [{ name: sound.name, octave: sound.octave }] }
         };
       });

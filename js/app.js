@@ -282,7 +282,7 @@ function renderFretboardMap() {
     detail.innerHTML = `<strong>${fmtAcc(sound.name)}${sound.octave}</strong> · ${positionLabel({ string: si, fret })}`;
     staff.style.display = '';
     mountNotation(staff, buildABC([{ name: written.name, octave: written.octave }],
-      { clef: 'treble', dur: '4' }), { clickToHear: true });
+      { clef: 'treble', dur: '4' }), { clickToHear: true, playbackTranspose: -GUITAR_WRITTEN_OFFSET });
     playNote(sound.name, sound.octave, 0.7);
   }
 
@@ -342,7 +342,7 @@ function renderLesson(id) {
     renderSidebar();
     const mp = progress.modulePercent(moduleLessonIds(lesson.moduleId));
     progLine.textContent = `Module ${lesson.moduleIndex + 1} · ${mp.done} of ${mp.total} lessons complete`;
-    if (!next) {
+    if (progress.isCourseComplete(ALL_IDS)) {
       celebrate.className = 'callout key';
       celebrate.innerHTML = '<div class="callout-title">🎉 You finished the course!</div>' +
         '<div class="callout-body">You now know how pitch, rhythm, intervals, scales, keys, modes and ' +
@@ -752,7 +752,7 @@ function renderCard(mount, card, onNext, label) {
   if (card.q.abc) {
     const m = el('div', 'notation-mount');
     qArea.appendChild(m);
-    mountNotation(m, card.q.abc, { clickToHear: true });
+    mountNotation(m, card.q.abc, { clickToHear: true, playbackTranspose: card.q.playbackTranspose });
   }
   // Tap-to-answer fretboard: mark the tapped cell right or wrong in place.
   let showAllPositions = null;
@@ -843,7 +843,7 @@ function renderCard(mount, card, onNext, label) {
     reveal.disabled = true;
     // Defer to the next frame so the now-visible container has a measured width
     // before abcjs renders (mobile Safari renders a blank SVG otherwise).
-    if (card.a.abc) mountNotation(aArea.querySelector('.notation-mount'), card.a.abc, { clickToHear: true });
+    if (card.a.abc) mountNotation(aArea.querySelector('.notation-mount'), card.a.abc, { clickToHear: true, playbackTranspose: card.a.playbackTranspose });
     if (showAllPositions) showAllPositions();
   }
   reveal.addEventListener('click', () => { doReveal(); reveal.blur(); });
