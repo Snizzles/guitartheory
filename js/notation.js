@@ -40,7 +40,7 @@ function renderNotation(el, abc, opts = {}) {
 
   if (opts.clickToHear !== false) {
     params.clickListener = (abcelem) => {
-      const midi = (abcelem.midiPitches || []).map(p => p.pitch);
+      const midi = (abcelem.midiPitches || []).map(p => p.pitch + (opts.playbackTranspose ?? 0));
       if (midi.length) {
         playMidi(midi, midi.length > 1 ? 1.0 : 0.6);
         flashNote(abcelem);
